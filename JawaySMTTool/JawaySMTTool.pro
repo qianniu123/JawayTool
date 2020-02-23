@@ -17,14 +17,17 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 LIBS += -L$$PWD/../lib -lyaml-cpp
 
-INCLUDEPATH += $$PWD/../yaml-cpp/inc
+INCLUDEPATH += $$PWD/../yaml-cpp/inc \
+               $$PWD/inc
 
 SOURCES += \
     main.cpp \
+    src/smttool.cpp \
     widget.cpp
 
 HEADERS += \
     inc/frame_define.h \
+    inc/smttool.h \
     widget.h
 
 FORMS += \

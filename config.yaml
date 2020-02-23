@@ -1,0 +1,66 @@
+IMEI:
+  enable: 1
+  type: str_notnull
+  value: ""
+SN:
+  enable: 1
+  type: str_notnull
+  value: ""
+ICCID:
+  enable: 1
+  type: str_notnull
+  value: ""
+HARDVER:
+  enable: 1
+  type: str_equal
+  value: JWMB1V01
+SOFTVER:
+  enable: 1
+  type: str_equal
+  value: 02010001
+MODEL:
+  enable: 1
+  type: int_notnull
+  value: ""
+BLE_MAC:
+  enable: 0
+  type: str_notnull
+GSM:
+  enable: 0
+  type: int_bigger
+GPS:
+  enable: 0
+  type: int_bigger
+SNR:
+  enable: 0
+  type: int_bigger
+ADC:
+  enable: 0
+  type: int_bigger
+电门:
+  enable: 0
+  type: int_flag
+外电:
+  enable: 0
+  type: int_bigger
+GSensor:
+  enable: 0
+  type: int_bigger
+ADC_FLAG:
+  enable: 0
+  type: int_bigger
+LOCK:
+  enable: 0
+  type: int_bigger
+RF:
+  enable: 0
+  type: int_bigger
+PWM:
+  enable: 0
+  type: int_bigger
+MUART:
+  enable: 0
+  type: int_bigger
+
+GPIO:[0,1,2,3,4,5,6,,10,11,12,13,21,31,32,33,34,36,40,46,47,48]
+
