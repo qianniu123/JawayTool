@@ -5,7 +5,7 @@
 
 SMTTool::SMTTool(QObject *parent) : QObject(parent)
 {
-
+    //gpio_list.push_back();
 }
 
 SMTTool::~SMTTool()
@@ -122,7 +122,8 @@ void SMTTool::parse_pack(unsigned char *pack, int size)
     memcpy(gpio_flag, p_frame->next, sizeof(gpio_flag));
     int gpio = *(int*)gpio_flag;
     int i=0;
-    for(list<string>::iterator p_list = gpio_list.begin(); p_list != gpio_list.end(); p_list++, i++)
+    //for(list<string>::iterator p_list = gpio_list.begin(); p_list != gpio_list.end(); p_list++, i++)
+    for(vector<string>::iterator p_list = gpio_list.begin(); p_list != gpio_list.end(); p_list++, i++)
     {
         bool io_flag = (gpio&0x1) >> i;
         frame_map[*p_list] = to_string(io_flag);

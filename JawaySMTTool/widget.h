@@ -36,10 +36,13 @@ public:
 
     SMTTool *m_smtTool;
 
-    //------------------------------
+    //----------------
     //read yaml
     void loadConfig();
     void saveConfig();
+
+    void dispConfigPage();
+    void dispHomePage();
 
 private slots:
     void on_pushButton_open_clicked();

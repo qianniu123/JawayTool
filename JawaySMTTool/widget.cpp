@@ -271,7 +271,6 @@ void Widget::loadConfig()
         goto LOAD_END;
     }
 
-
     for(YAML::const_iterator it=config.begin(); it!=config.end(); it++)
     {
         string node_name = it->first.as<string>();
@@ -295,11 +294,26 @@ void Widget::loadConfig()
         //------------------------------------------------------------------------
         m_smtTool->config_map.clear();
         m_smtTool->config_map[node_name].enable = enable;
-        m_smtTool->config_map[node_name].type = type;
-        m_smtTool->config_map[node_name].value = value;
+        m_smtTool->config_map[node_name].type   = type;
+        m_smtTool->config_map[node_name].value  = value;
     }
-
 
     LOAD_END:
     f_in.close();
 }
+
+void Widget::dispConfigPage()
+{
+    size_t item_cnt = m_smtTool->config_map.size();
+
+    //config table widget
+
+}
+
+
+
+
+
+
+
+

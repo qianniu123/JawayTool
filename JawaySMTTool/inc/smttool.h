@@ -48,9 +48,9 @@ public:
     void parse_pack(unsigned char *pack, int size);
 
     map<string, string> frame_map;
-        list<string> state_list;
+        vector<string> state_list;
         char state_flag;
-        list<string> gpio_list;
+        vector<string> gpio_list;
         char gpio_flag[4];
     //void get_key_value();
 
