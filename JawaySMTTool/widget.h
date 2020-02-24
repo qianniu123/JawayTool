@@ -24,9 +24,10 @@ public:
     void init(void);
 
     QSerialPort *m_serialPort;
-    QTimer      *m_smt_timer;    // smt testing time
+    QTimer      *m_smt_timer;    // smt running time
+    int         smt_run_time;
     QTimer      *m_comPort_timer;// comPort update
-    QTimer      *m_tryComm_timer;
+    QTimer      *m_tryComm_timer;//when smt start,communiation may fail,so need try some times
 
     QTableWidget *m_tableWidget_home;
     QTableWidget *m_tableWidget_config;
@@ -34,6 +35,11 @@ public:
     QByteArray m_rxArray;
 
     SMTTool *m_smtTool;
+
+    //------------------------------
+    //read yaml
+    void loadConfig();
+    void saveConfig();
 
 private slots:
     void on_pushButton_open_clicked();
@@ -47,9 +53,14 @@ public slots:
     void slot_numCheck_stateChanged(int state);
     void slot_comPort_timeout();
     void slot_tryComm_timeout();
+    void slot_smt_timeout();
     void slot_readyRead();
-
+    void slot_dispUpdata();
     void slot_sendData(unsigned char *data, int len);//
+
+signals:
+    void sig_dispUpdata();
+
 private:
     Ui::Widget *ui;
 };

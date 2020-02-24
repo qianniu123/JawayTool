@@ -19,6 +19,8 @@ Widget::Widget(QWidget *parent)
     this->setWindowTitle(QString("嘉为SMT测试工具_V2.0"));//JawaySMTTool_V2.0
 
     //--------------------------------------------------------------------------------------------------
+    ui->pushButton_smt->setEnabled(false);
+
     connect(ui->checkBox_numCheck, &QCheckBox::stateChanged, this, &Widget::slot_numCheck_stateChanged);
     ui->checkBox_autoStop->setCheckState(Qt::Checked);
     ui->checkBox_numCheck->setCheckState(Qt::Unchecked);
@@ -38,6 +40,7 @@ Widget::Widget(QWidget *parent)
     //----------------------------------
     m_smt_timer = new QTimer();
     m_smt_timer->setInterval(1000);//ms
+    connect(m_smt_timer, &QTimer::timeout, this, &Widget::slot_smt_timeout);
 
     m_comPort_timer = new QTimer();
     m_comPort_timer->setInterval(1000);
@@ -86,6 +89,9 @@ void Widget::slot_comPort_timeout()
 
 void Widget::init()
 {
+    smt_run_time = 0;
+
+    connect(this, &Widget::sig_dispUpdata, this, &Widget::slot_dispUpdata);
 
 }
 
@@ -137,6 +143,10 @@ void Widget::on_pushButton_smt_clicked()
 
         m_smtTool->start();
         m_smtTool->smt_state = START;//start
+
+        smt_run_time = 0;
+        m_smt_timer->start();//smt running
+        ui->label_spendTime->setText(QString::number(0));
     }
     else if(ui->pushButton_smt->text() == QString("停止测试"))
     {
@@ -144,6 +154,8 @@ void Widget::on_pushButton_smt_clicked()
 
         m_smtTool->stop();
         m_smtTool->smt_state = STOP;//stop
+
+        m_smt_timer->stop();
     }
 
     m_tryComm_timer->start();//通信超时定时器
@@ -189,6 +201,13 @@ void Widget::slot_tryComm_timeout()
     }
 }
 
+void Widget::slot_smt_timeout()
+{
+    smt_run_time++;
+
+    ui->label_spendTime->setText(QString::number(smt_run_time));
+}
+
 void Widget::slot_sendData(unsigned char *data, int len)
 {
     m_serialPort->write(reinterpret_cast<char*>(data), len);
@@ -199,6 +218,8 @@ void Widget::on_toolButton_config_clicked()
     if(ui->toolButton_config->text() == QString("配置"))
     {
         ui->toolButton_config->setText(QString("保存"));
+
+        loadConfig();
     }
     else if(ui->toolButton_config->text() == QString("保存"))
     {
@@ -221,6 +242,64 @@ void Widget::slot_readyRead()
             {
                 m_rxArray.clear();
             }
+
+            emit sig_dispUpdata();
         }
     }
+}
+
+void Widget::slot_dispUpdata()
+{
+
+
+}
+
+
+void Widget::loadConfig()
+{
+    ifstream f_in("./config.yaml");
+    if(!f_in)
+    {
+        qDebug() << "read config.yaml error";
+        return;
+    }
+
+    YAML::Node config = YAML::Load(f_in);
+    if(!config.IsDefined()) //if(config.IsNull())
+    {
+        qDebug() << "yaml load error";
+        goto LOAD_END;
+    }
+
+
+    for(YAML::const_iterator it=config.begin(); it!=config.end(); it++)
+    {
+        string node_name = it->first.as<string>();
+        string enable;
+        string type;
+        string value;
+        if(config[node_name]["enable"])
+        {
+            enable = config[node_name]["enable"].as<string>();
+        }
+        if(config[node_name]["type"])
+        {
+            type = config[node_name]["type"].as<string>();
+        }
+        if(config[node_name]["value"])
+        {
+            value = config[node_name]["value"].as<string>();
+        }
+
+        cout << node_name << ":" << enable << "," << type << "," << value << endl;
+        //------------------------------------------------------------------------
+        m_smtTool->config_map.clear();
+        m_smtTool->config_map[node_name].enable = enable;
+        m_smtTool->config_map[node_name].type = type;
+        m_smtTool->config_map[node_name].value = value;
+    }
+
+
+    LOAD_END:
+    f_in.close();
 }
