@@ -392,7 +392,7 @@ bool Widget::valueCompare(QString value, QString set_value, QString type)
             return (value==set_value)?true:false;
         }
     }
-    else if(type == "flag")
+    else if(type == "flag" || type == "bool")
     {
         return (value.toInt()?true:false);
     }
@@ -574,22 +574,41 @@ void Widget::dispHomePage()
     for(iter=m_smtTool->home_map.begin(); iter != m_smtTool->home_map.end(); iter++, row++)
     {
         string c0_text(iter->first);
-
-        QTableWidgetItem *p_item_c0 = new QTableWidgetItem();
-        QTableWidgetItem *p_item_c1 = new QTableWidgetItem();
-        QTableWidgetItem *p_item_c2 = new QTableWidgetItem();
-
-        p_item_c0->setText(QString::fromStdString(c0_text));
+        item_t item = iter->second;//
 
         m_tableWidget_home->insertRow(row);
+
+        //item
+        QTableWidgetItem *p_item_c0 = new QTableWidgetItem();
+        p_item_c0->setText(QString::fromStdString(c0_text));
         Qt::ItemFlags flags = p_item_c0->flags();
         flags &= ~Qt::ItemIsEditable;
-        m_tableWidget_home->setItem(row, 0, p_item_c0);
         p_item_c0->setFlags(flags);
-        m_tableWidget_home->setItem(row, 1, p_item_c1);
-        p_item_c1->setFlags(flags);
-        m_tableWidget_home->setItem(row, 2, p_item_c2);
+        m_tableWidget_home->setItem(row, 0, p_item_c0);
+
+        //result
+        QTableWidgetItem *p_item_c2 = new QTableWidgetItem();
         p_item_c2->setFlags(flags);
+        m_tableWidget_home->setItem(row, 2, p_item_c2);
+
+        //value display
+        if(item.type != "io")
+        {
+            QTableWidgetItem *p_item_c1 = new QTableWidgetItem();
+            p_item_c1->setFlags(flags);
+            m_tableWidget_home->setItem(row, 1, p_item_c1);
+        }
+        else
+        {
+            QTableWidget *p_item_c1 = new QTableWidget();
+            p_item_c1->setRowCount(4);
+            p_item_c1->setColumnCount(5);
+
+            p_item_c1->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+            p_item_c1->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+
+            m_tableWidget_home->setCellWidget(row, 1, p_item_c1);
+        }
     }
 }
 
