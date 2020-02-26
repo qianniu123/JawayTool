@@ -125,7 +125,7 @@ void SMTTool::parse_pack(unsigned char *pack, int size)
     //for(list<string>::iterator p_list = gpio_list.begin(); p_list != gpio_list.end(); p_list++, i++)
     for(vector<string>::iterator p_list = gpio_list.begin(); p_list != gpio_list.end(); p_list++, i++)
     {
-        bool io_flag = (gpio&0x1) >> i;
+        bool io_flag = gpio&(0x1<<i);
         frame_map[*p_list] = to_string(io_flag);
     }
 }

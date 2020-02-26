@@ -48,6 +48,13 @@ public:
     void dispConfigPage();
     void dispHomePage();
 
+#define MODE_REGULAR 0
+#define MODE_TABLE   1
+#define GPIO_DISPLAY_MODE MODE_REGULAR
+    void setGpioMap(string gpios);
+    void dispGpioTable(int row, int col, QString gpios);//MODE_TABLE
+    void dispGpioTable(string pin_name, item_t item, int pin_row); //MODE_REGULAR
+
     QStringList m_compareTypeList;
     bool valueCompare(QString value, QString set_value, QString type);// return result(pass or fail)
 private slots:
@@ -57,7 +64,6 @@ private slots:
 
     void on_toolButton_config_clicked();
 
-
 public slots:
     void slot_numCheck_stateChanged(int state);
     void slot_autoStop_stateChanged(int state);//no need
@@ -66,11 +72,13 @@ public slots:
     //void slot_tryComm_timeout();
     void slot_smt_timeout();
     void slot_readyRead();
-    void slot_dispUpdata();
+    void slot_dispUpdate();
+    void slot_dispUpdate_io();
     void slot_sendData(unsigned char *data, int len);//
 
 signals:
-    void sig_dispUpdata();
+    void sig_dispUpdate();
+    void sig_dispUpdate_io();
 
 private:
     Ui::Widget *ui;
