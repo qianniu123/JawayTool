@@ -149,16 +149,9 @@ void Widget::slot_test_timeout()
     m_smtTool->frame_map["电门"] = "0";
 
     //m_smtTool->frame_map["GPIO"] = to_string(0x5a5a);
-    /*
-    m_smtTool->frame_map["P00"] = "0";
-    m_smtTool->frame_map["P01"] = "1";
-    m_smtTool->frame_map["P02"] = "0";
-    m_smtTool->frame_map["P03"] = "1";
-    m_smtTool->frame_map["P04"] = "1";
-    m_smtTool->frame_map["P05"] = "1";
-    */
 
-    unsigned char gpio_c[4] = {0x5a, 0x55, 0x55, 0xaa};
+
+    unsigned char gpio_c[4] = {0xFF, 0xFF, 0xFF, 0x00};
     int *gpio_i = (int*)gpio_c;
     int gpio = *gpio_i;
     int i=0;
@@ -172,7 +165,6 @@ void Widget::slot_test_timeout()
     }
 
     emit sig_dispUpdate();
-    emit sig_dispUpdate_io();
 }
 #endif
 
@@ -430,7 +422,7 @@ void Widget::slot_dispUpdate()
         string node_name = p_item_c0->text().toStdString();
         if(m_smtTool->home_map[node_name].type == "io")
         {
-            continue;    
+            continue;// do not update io type
         }
 
         QTableWidgetItem *p_item_c1 = m_tableWidget_home->item(i, 1);
@@ -526,6 +518,7 @@ void Widget::slot_dispUpdate_io()
     int row_index = p_item_io->row();
     int col_index =p_item_io->column();
     qDebug() << "find gpio tableWidget;" << "cnt = " << cnt << "; node_name = " << p_item_io->text() << "; row_index = " << row_index;
+
     //------------------------------------------------------------------------------------------------
     QTableWidget *p_table_io = (QTableWidget*)m_tableWidget_home->cellWidget(row_index, col_index+1);
 
@@ -549,6 +542,30 @@ void Widget::slot_dispUpdate_io()
 //        qDebug() << "pin_name = " << QString::fromStdString(pin_name) << "; row = "<< row_index_io << "; col = " << col_index_io \
 //                 << "pin_value = " << QString::fromStdString(pin_newValue);
     }
+
+    //-----------------------------------------------------------------
+    //check result , if all io pass, --> set result_map["GPIO"] = true
+    for(iter=m_smtTool->home_map_io.begin(); iter!=m_smtTool->home_map_io.end(); iter++)
+    {
+        string pin_name = iter->first;
+        item_t pin_item = iter->second;
+        QList<QTableWidgetItem*> io_item_list = p_table_io->findItems(QString::fromStdString(pin_name), Qt::MatchExactly);
+        if(item_list.isEmpty())
+        {
+            continue;
+        }
+        QTableWidgetItem *p_item = io_item_list.first();
+        int row_index_io = p_item->row();
+        int col_index_io = p_item->column();
+        // read pin value
+        QString pin_result = p_table_io->item(row_index_io+1, col_index_io)->text();
+        if(pin_result.toInt() == 0)
+        {
+            return;
+        }
+    }
+    //----
+    m_smtTool->result_map["GPIO"] = true;
 
 #endif
 }
@@ -716,17 +733,17 @@ void Widget::saveConfig()
 
         if(enable) //-->home_map
         {
-            if(type == "io")
+            if(type == "io") //node_name = "GPIO", type="io", value="[00,01,02,12,13]"
             {
                 //set gpio home_map
                 #if (GPIO_DISPLAY_MODE == MODE_REGULAR)
-                    setGpioMap(value);  //config_map value --> pin name
+                    setGpioList(value);  //config_map value --> pin name
                 #elif (GPIO_DISPLAY_MODE == MODE_TABLE)
                     item_t item = {to_string(enable), type, value};
                     m_smtTool->home_map[node_name] = item;
-
+                    m_smtTool->result_map[node_name] = 0;
                     //init gpio_list
-                    setGpioMap(value); //!!!!!!
+                    setGpioList(value); //!!!!!!
                 #endif
             }
             else
@@ -747,7 +764,7 @@ void Widget::saveConfig()
     f_out.close();
 }
 
-void Widget::setGpioMap(string gpios)
+void Widget::setGpioList(string gpios)
 {
     //gpio ---> home_map
     //str = "[0,1,2,3,4,5,6,10,11,12,13,21,31,32,33,34,36,40,46,47,48]"
@@ -988,9 +1005,18 @@ void Widget::slot_saveLog()
         {
             if(m_tableWidget_home->item(i,0))
             {
-                out << m_tableWidget_home->item(i,0)->text() << "\t:" \
-                 << m_tableWidget_home->item(i,1)->text() << "\t" \
-                 << m_tableWidget_home->item(i,2)->text() << endl;
+                string c0_text = m_tableWidget_home->item(i,0)->text().toStdString();
+                if(m_smtTool->home_map[c0_text].type == "io")
+                {
+                    out << m_tableWidget_home->item(i,0)->text() << "\t:" << endl;
+                        //<< m_smtTool->result_map[c0_text] << endl;
+                }
+                else
+                {
+                    out << m_tableWidget_home->item(i,0)->text() << "\t:" \
+                     << m_tableWidget_home->item(i,1)->text() << "\t" \
+                     << m_tableWidget_home->item(i,2)->text() << endl;
+                }
             }
         }
         //gpio

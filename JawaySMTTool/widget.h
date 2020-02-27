@@ -51,7 +51,7 @@ public:
 #define MODE_REGULAR 0
 #define MODE_TABLE   1
 #define GPIO_DISPLAY_MODE MODE_REGULAR
-    void setGpioMap(string gpios);
+    void setGpioList(string gpios);
     void dispGpioTable(int row, int col, QString gpios);//MODE_TABLE
     void dispGpioTable(string pin_name, item_t item, int pin_row); //MODE_REGULAR
 
