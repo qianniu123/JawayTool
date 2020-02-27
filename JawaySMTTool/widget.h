@@ -76,24 +76,25 @@ public slots:
     void slot_dispUpdate_io();
     void slot_sendData(unsigned char *data, int len);//
 
+    void slot_saveLog();
+
 signals:
     void sig_dispUpdate();
     void sig_dispUpdate_io();
 
 private:
     Ui::Widget *ui;
-//----------------------------
-#define SELF_TEST_ENABLE
-
+//============================
+public:
+//#define SELF_TEST_ENABLE
 //just for test
 #ifdef SELF_TEST_ENABLE
-public:
     QTimer *m_test_timer;
     void    test_init();
 
 public slots:
     void slot_test_timeout();
 #endif
-
+//============================
 };
 #endif // WIDGET_H

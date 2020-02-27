@@ -44,19 +44,21 @@ public:
     void stop();
 
     SMT_state_t smt_state; //0-->1(start)-->2(runing)-->3(stop)-->0(no runing)
-    int msg_process(unsigned char *data, int len);
+    int msg_process(char *data, int len);
     void parse_pack(unsigned char *pack, int size);
 
     map<string, string> frame_map;
-        vector<string> state_list;
-        char state_flag;    //1 byte state value
+        ///vector<string> state_list;
+        ///char state_flag;    //1 byte state value
         vector<string> gpio_list;
-        char gpio_flag[4]; //4 byte gpio value
+        ///char gpio_flag[4]; //4 byte gpio value
     //void get_key_value();
 
     map<string, item_t> config_map;//config page
     map<string, item_t> home_map;  //home page
     map<string, item_t> home_map_io;//if MODEL TABLE, no use
+    map<string, bool>   result_map;//total  test result
+
 signals:
     void sig_sendBuf(unsigned char *data, int len);
 
