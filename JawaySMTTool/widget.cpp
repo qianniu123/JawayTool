@@ -25,7 +25,7 @@ Widget::Widget(QWidget *parent)
 {
     ui->setupUi(this);
     this->setLayout(ui->verticalLayout_all);
-    this->setWindowTitle(QString("嘉为SMT测试工具_V2.0"));//JawaySMTTool_V2.0
+    this->setWindowTitle(QString("嘉为SMT测试工具_V3.0"));//JawaySMTTool_V2.0
 
     //--------------------------------------------------------------------------------------------------
     ui->pushButton_smt->setEnabled(false);
