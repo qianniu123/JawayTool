@@ -1,70 +1,70 @@
 IMEI:
   enable: 1
-  type: str_notnull
+  type: string
   value: ""
 SN:
   enable: 1
-  type: str_notnull
+  type: string
   value: ""
 ICCID:
   enable: 1
-  type: str_notnull
+  type: string
   value: ""
 HARDVER:
   enable: 1
-  type: str_equal
+  type: string
   value: JWMB1V01
 SOFTVER:
   enable: 1
-  type: str_equal
+  type: str
   value: 02010001
 MODEL:
   enable: 1
-  type: int_notnull
+  type: int
   value: ""
 BLE_MAC:
   enable: 0
-  type: str_notnull
+  type: string
 GSM:
   enable: 0
-  type: int_bigger
+  type: int
 GPS:
   enable: 0
-  type: int_bigger
+  type: int
 SNR:
   enable: 0
-  type: int_bigger
+  type: int
 ADC:
   enable: 0
-  type: int_bigger
+  type: int
 电门:
   enable: 0
-  type: int_flag
+  type: bool
 外电:
   enable: 0
-  type: int_bigger
+  type: bool
 GSensor:
   enable: 0
-  type: int_bigger
+  type: bool
 ADC_FLAG:
   enable: 0
-  type: int_bigger
+  type: bool
 LOCK:
   enable: 0
-  type: int_bigger
+  type: bool
 RF:
   enable: 0
-  type: int_bigger
+  type: bool
 PWM:
   enable: 0
-  type: int_bigger
+  type: bool
 MUART:
   enable: 0
-  type: int_bigger
+  type: bool
 
 GPIO:
   enable: 0
-  type: int_flag
-    #[0,1,2,3,4,5,6,,10,11,12,13,21,31,32,33,34,36,40,46,47,48]
+  type: io
+  value："[0,1,2,3,4,5,6,,10,11,12,13,21,31,32,33,34,36,40,46,47,48]"
 
 
