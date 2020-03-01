@@ -4,6 +4,9 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+#include <fstream>
+#include <QDebug>
+
 SMTTool::SMTTool(QObject *parent) : QObject(parent)
 {
     //gpio_list.push_back();
@@ -129,4 +132,76 @@ void SMTTool::parse_pack(unsigned char *pack, int size)
         //cout << *p_list << "\t";
     }
         //cout << endl;
+}
+
+void SMTTool::loadConfig()
+{
+    //config.yaml --> config_map --> tableWidget
+    ifstream f_in("./config.yaml");
+    if(!f_in)
+    {
+        qDebug() << "read config.yaml error";
+        return;
+    }
+
+    YAML::Node config = YAML::Load(f_in);
+    if(!config.IsDefined()) //if(config.IsNull())
+    {
+        qDebug() << "yaml load error";
+        goto LOAD_END;
+    }
+
+    config_map.clear();
+    for(YAML::const_iterator it=config.begin(); it!=config.end(); it++)
+    {
+        string node_name = it->first.as<string>();
+        string enable;
+        string type;
+        string value;
+        if(config[node_name]["enable"])
+        {
+            enable = config[node_name]["enable"].as<string>();
+        }
+        if(config[node_name]["type"])
+        {
+            type = config[node_name]["type"].as<string>();
+            if(config[node_name]["value"])
+            {
+                value = config[node_name]["value"].as<string>();
+            }
+        }
+
+        //cout << node_name << ":" << enable << "," << type << "," << value << endl;
+        //------------------------------------------------------------------------
+        config_map[node_name].enable = enable;
+        config_map[node_name].type   = type;
+        config_map[node_name].value  = value;
+    }
+
+    LOAD_END:
+    f_in.close();
+}
+
+void SMTTool::saveConfig()
+{
+    ofstream f_out("./config.yaml");
+    if(!f_out)
+    {
+        qDebug() << "open config.yaml error";
+    }
+    YAML::Node config;
+
+    //config_map --> config.yaml
+    map<string, item_t>::iterator iter;
+    for(iter=config_map.begin(); iter!=config_map.end(); iter++)
+    {
+        string node_name = iter->first;
+
+        config[node_name]["enable"] = iter->second.enable;
+        config[node_name]["type"] = iter->second.type;
+        config[node_name]["value"] = iter->second.value;
+    }
+
+    f_out << config;
+    f_out.close();
 }

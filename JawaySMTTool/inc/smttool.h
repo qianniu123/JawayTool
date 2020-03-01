@@ -4,8 +4,12 @@
 #include <QObject>
 #include "frame_define.h"
 #include <map>
+#include <unordered_map>
 #include <string>
 #include <list>
+#include <vector>
+
+#include "yaml-cpp/yaml.h"
 
 #define START_BUF_SIZE 9
 #define STOP_BUF_SIZE  9
@@ -58,6 +62,10 @@ public:
     map<string, item_t> home_map;  //home page
     map<string, item_t> home_map_io;//if MODEL TABLE, no use
     map<string, bool>   result_map;//total  test result
+
+    //---------------------------------
+    void loadConfig();
+    void saveConfig();
 
 signals:
     void sig_sendBuf(unsigned char *data, int len);
