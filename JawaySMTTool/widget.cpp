@@ -25,7 +25,7 @@ Widget::Widget(QWidget *parent)
 {
     ui->setupUi(this);
     this->setLayout(ui->verticalLayout_all);
-    this->setWindowTitle(QString("嘉为SMT测试工具_V3.0"));//JawaySMTTool_V2.0
+    this->setWindowTitle(QString("嘉为SMT测试工具_V3.0"));
 
     //--------------------------------------------------------------------------------------------------
     ui->pushButton_smt->setEnabled(false);
@@ -49,23 +49,28 @@ Widget::Widget(QWidget *parent)
     result_font.setPixelSize(50);
     ui->label_result->setFont(result_font);
 
-    //------------------------------------
-    m_smt_timer = new QTimer();
-    m_smt_timer->setInterval(1000);//ms
-    connect(m_smt_timer, &QTimer::timeout, this, &Widget::slot_smt_timeout);
+    //------------------------------------------------
+    m_tableWidget_home = new QTableWidget();
+    m_tableWidget_config = new QTableWidget();
+    ui->stackedWidget->addWidget(m_tableWidget_home);
+    ui->stackedWidget->addWidget(m_tableWidget_config);
 
-    m_comPort_timer = new QTimer();
-    m_comPort_timer->setInterval(1000);
-    connect(m_comPort_timer, &QTimer::timeout, this, &Widget::slot_comPort_timeout);
-    m_comPort_timer->start();
+    //------------------------------------
+    m_timer_smt = new QTimer();
+    m_timer_smt->setInterval(1000);//ms
+    connect(m_timer_smt, &QTimer::timeout, this, &Widget::slot_smt_timeout);
+
+    m_timer_comPort = new QTimer();
+    m_timer_comPort->setInterval(1000);
+    connect(m_timer_comPort, &QTimer::timeout, this, &Widget::slot_comPort_timeout);
+    m_timer_comPort->start();
 
     m_serialPort = new QSerialPort();
     connect(m_serialPort, &QSerialPort::readyRead, this, &Widget::slot_readyRead);
 
 
     //----------------------------------------------------------------------
-    m_smtTool = new SMTTool();
-    connect(m_smtTool, &SMTTool::sig_sendBuf, this, &Widget::slot_sendData);
+
 
     //-------
     init();
@@ -73,6 +78,19 @@ Widget::Widget(QWidget *parent)
     #ifdef SELF_TEST_ENABLE
         test_init();
     #endif
+}
+
+void Widget::init()
+{
+    m_protocol = nullptr;
+    m_controller = nullptr;
+    smt_run_time = 0;
+
+    m_compareTypeList << "int" << "string" << "bool" << "flag" << "io";
+    //--------------------------------------------------------
+
+
+    //emit ui->toolButton_config->clicked();
 }
 
 Widget::~Widget()
@@ -100,23 +118,7 @@ void Widget::slot_comPort_timeout()
     }
 }
 
-void Widget::init()
-{
-    smt_run_time = 0;
 
-    connect(this, &Widget::sig_dispUpdate, this, &Widget::slot_dispUpdate);
-    connect(this, &Widget::sig_dispUpdate_io, this, &Widget::slot_dispUpdate_io);
-
-    m_tableWidget_config = nullptr;
-    m_tableWidget_home   = nullptr;
-
-    m_compareTypeList << "int" << "string" << "bool" << "flag" << "io";
-    //--------------------------------------------------------
-    loadConfig();
-    dispConfigPage();
-    saveConfig();
-    dispHomePage();
-}
 
 #ifdef SELF_TEST_ENABLE
 void Widget::test_init()
@@ -130,7 +132,7 @@ void Widget::test_init()
 void Widget::slot_test_timeout()
 {
     //set value for test
-    if(!m_serialPort->isOpen() || !m_smt_timer->isActive())
+    if(!m_serialPort->isOpen() || !m_timer_smt->isActive())
     {
         return;
     }
@@ -195,9 +197,9 @@ void Widget::slot_autoStop_stateChanged(int state)
 void Widget::slot_IMEI_changed(QString text)
 {
     string imei_value = text.toStdString();
-    item_t item = m_smtTool->home_map["IMEI"];
+    item_t item = m_protocol->home_map["IMEI"];
     item.value = imei_value;
-    m_smtTool->home_map["IMEI"] = item;
+    m_protocol->home_map["IMEI"] = item;
 
     qDebug() << "home_map new imei = " << text;
 }
@@ -237,11 +239,11 @@ void Widget::on_pushButton_smt_clicked()
     {
         ui->pushButton_smt->setText(QString("停止测试"));
 
-        m_smtTool->start();//write start data
-        m_smtTool->smt_state = START;//start
+//        m_smtTool->start();//write start data
+//        m_smtTool->smt_state = START;//start
 
         smt_run_time = 0;
-        m_smt_timer->start();//smt running
+        m_timer_smt->start();//smt running
         ui->label_spendTime->setText(QString::number(0));        
 
         #ifdef SELF_TEST_ENABLE
@@ -252,16 +254,16 @@ void Widget::on_pushButton_smt_clicked()
     {
         ui->pushButton_smt->setText(QString("SMT测试"));
 
-        m_smtTool->stop();//write stop data
-        m_smtTool->smt_state = STOP;//stop
-        //m_smt_timer->stop();
+//        m_smtTool->stop();//write stop data
+//        m_smtTool->smt_state = STOP;//stop
+        //m_timer_smt->stop();
 
         #ifdef SELF_TEST_ENABLE
             m_test_timer->stop();
         #endif
 
         //save log
-        slot_saveLog();
+        //slot_saveLog();
     }
 }
 
@@ -270,7 +272,7 @@ void Widget::slot_smt_timeout()
     static int start_timeout = 0;
     static int stop_timeout = 0;
     static QString test_state;
-
+/*
     switch(m_smtTool->smt_state)
     {
         case START:
@@ -321,16 +323,11 @@ void Widget::slot_smt_timeout()
             m_smtTool->smt_state = STOPING;
         }
     }
-
+*/
     //---------------------------------------------------------
     //smt_run_time++;
     ui->label_spendTime->setText(QString::number(smt_run_time));
     ui->label_result->setText(test_state);
-}
-
-void Widget::slot_sendData(unsigned char *data, int len)
-{
-    m_serialPort->write(reinterpret_cast<char*>(data), len);
 }
 
 void Widget::on_toolButton_config_clicked()
@@ -339,17 +336,130 @@ void Widget::on_toolButton_config_clicked()
     {
         ui->toolButton_config->setText(QString("保存"));
 
-        //qDebug() << "loadConfig  --> display config page";
-        loadConfig();
-        dispConfigPage();
+        m_controller->loadConfig();
+        updateConfigPage();//config_map --> widget
+
+        ui->stackedWidget->setCurrentWidget(m_tableWidget_config);
     }
     else if(ui->toolButton_config->text() == QString("保存"))
     {
        ui->toolButton_config->setText(QString("配置"));
 
-       //qDebug() << "save config --> display home page";
-       saveConfig();
-       dispHomePage();
+       updateConfigMap();//widget --> config_map
+       m_controller->saveConfig();//config_map --> config.yaml
+       m_controller->setHomeMap();//config_map --> home_map
+       setHomePage();//home_map --> widget
+
+       ui->stackedWidget->setCurrentWidget(m_tableWidget_home);
+    }
+}
+
+void Widget::updateConfigPage() //config_map --> config page
+{
+    //clear table
+    m_tableWidget_config->clear();
+    QStringList headerList;
+    headerList << QString("测试项") << QString("设置值") << QString("类型");
+    m_tableWidget_config->setHorizontalHeaderLabels(headerList);
+    m_tableWidget_config->setColumnCount(3);
+
+    //create table
+    unordered_map<string, item_t> *p_map = &m_protocol->config_map;
+    unordered_map<string, item_t>::iterator iter;
+    int row_index = 0;
+    for(iter=p_map->begin(); iter!=p_map->end(); iter++, row_index++)
+    {
+        m_tableWidget_config->insertRow(row_index);
+        //config_map -->widget
+        string node_name = iter->first;
+        string enable    = iter->second.enable;
+        string set_value = iter->second.value;
+        string type      = iter->second.type;
+        //qDebug() << "configPage:" << QString::fromStdString(node_name);
+        QTableWidgetItem *widgetItem_c0 = new QTableWidgetItem();
+        widgetItem_c0->setText(QString::fromStdString(node_name));
+        m_tableWidget_config->setItem(row_index, 0, widgetItem_c0);
+
+        QTableWidgetItem *widgetItem_c1 = new QTableWidgetItem();
+        widgetItem_c1->setText(QString::fromStdString(set_value));
+        m_tableWidget_config->setItem(row_index, 1, widgetItem_c1);
+
+        //QComboBox *widget_c2 = new QComboBox();
+
+    }
+
+}
+void Widget::updateConfigMap()//widget --> config_map
+{  
+    int row_cnt = m_tableWidget_config->rowCount();
+    for(int i=0; i<row_cnt; i++)
+    {
+        QTableWidgetItem *p_item_c0 = m_tableWidget_config->item(i,0);
+        QTableWidgetItem *p_item_c1 = m_tableWidget_config->item(i,1);
+        //QTableWidgetItem *p_item_c2 = m_tableWidget_config->item(i,2);
+
+        if(p_item_c0 && p_item_c1)
+        {
+            Qt::CheckState c0_state = p_item_c0->checkState();
+            string enable = (c0_state==Qt::Checked?"1":"0");
+            string node_name = p_item_c0->text().toStdString();
+            string set_value = p_item_c1->text().toStdString();
+            string type;
+
+            m_protocol->config_map[node_name] = item_t{enable, set_value, type};
+        }
+    }
+}
+
+void Widget::setHomePage() //home_map --> widget
+{
+    //clear table
+    m_tableWidget_home->clear();
+    QStringList headerList;
+    headerList << QString("测试项") << QString("值") << QString("结果");
+    m_tableWidget_home->setHorizontalHeaderLabels(headerList);
+    m_tableWidget_home->setColumnCount(3);
+
+    //create table
+    unordered_map<string, item_t> *p_map = &m_protocol->home_map;
+    unordered_map<string, item_t>::iterator iter;
+    int row_index = 0;
+    for(iter=p_map->begin(); iter!=p_map->end(); iter++, row_index++)
+    {
+        m_tableWidget_home->insertRow(row_index);
+
+        //config_map -->widget
+        string node_name = iter->first;
+        string enable    = iter->second.enable;
+        string set_value = iter->second.value;
+        string type      = iter->second.type;
+        qDebug() << "homePage:" << QString::fromStdString(node_name);
+        QTableWidgetItem *widgetItem_c0 = new QTableWidgetItem();
+        widgetItem_c0->setText(QString::fromStdString(node_name));
+        m_tableWidget_home->setItem(row_index, 0, widgetItem_c0);
+
+        QTableWidgetItem *widgetItem_c1 = new QTableWidgetItem();
+        widgetItem_c1->setText(QString::fromStdString(set_value));
+        m_tableWidget_home->setItem(row_index, 1, widgetItem_c1);
+
+        //QComboBox *widget_c2 = new QComboBox();
+
+    }
+}
+
+void Widget::updateHomePage() //frame_map --> home page
+{
+    //c0_text --> frame_map --> value --> c1_text
+    int row_cnt = m_tableWidget_home->rowCount();
+    for(int i=0; i<row_cnt; i++)
+    {
+        QTableWidgetItem *p_item_c0 = m_tableWidget_home->item(i, 0);
+        QTableWidgetItem *p_item_c1 = m_tableWidget_home->item(i, 1);
+
+        QString c0_text = p_item_c0->text();
+        string node_name = c0_text.toStdString();
+        string new_value = m_protocol->frame_map[node_name].value;
+        p_item_c1->setText(QString::fromStdString(new_value));
     }
 }
 
@@ -394,7 +504,7 @@ void Widget::slot_readyRead()
             }
 
             //then msg_process
-            int result = m_smtTool->msg_process(frame_buff, frame_len);
+            int result = 0;//m_smtTool->msg_process(frame_buff, frame_len);
             if(result == -1 || result == 1) // -1: data error; 1: data right; 0:part data
             {
                 //qDebug() << "-------------get a frame, and clear-------------: result = " << result;
@@ -402,637 +512,9 @@ void Widget::slot_readyRead()
                 frame_head_flag = false;
             }
 
-            emit sig_dispUpdate();
+            //emit sig_dispUpdate();
         }
     }
 }
 
-void Widget::slot_dispUpdate()
-{
-    //if have GPIO
-    emit sig_dispUpdate_io();
-
-    // display frame_map value according to home_map key, then compare to home_map value
-    int row_cnt = m_tableWidget_home->rowCount();
-    for(int i=0; i<row_cnt; i++)
-    {
-        //tableWidget --> node name -->value = frame_map[node_name] --> tableWidget item value
-        QTableWidgetItem *p_item_c0 = m_tableWidget_home->item(i, 0);
-        if(p_item_c0 == nullptr) continue;
-        string node_name = p_item_c0->text().toStdString();
-        if(m_smtTool->home_map[node_name].type == "io")
-        {
-            continue;// do not update io type
-        }
-
-        QTableWidgetItem *p_item_c1 = m_tableWidget_home->item(i, 1);
-        QTableWidgetItem *p_item_c2 = m_tableWidget_home->item(i, 2);
-
-        string new_value = m_smtTool->frame_map[node_name];
-        p_item_c1->setText(QString::fromStdString(new_value));
-
-        string set_value = m_smtTool->home_map[node_name].value;
-        string compareType = m_smtTool->home_map[node_name].type;
-
-        //compare() --> result
-        QString q_new_value = QString::fromStdString(new_value);
-        QString q_set_value = QString::fromStdString(set_value);
-        QString q_type      = QString::fromStdString(compareType);
-            //for test
-            //qDebug()<<"node_name="<<p_item_c0->text()<<";type="<<q_type;
-            //qDebug()<<"value="<<q_new_value<<";set_value="<<q_set_value;
-            //qDebug()<< "value_len=" << q_new_value.length();
-        bool result = valueCompare(q_new_value, q_set_value, q_type);
-
-        p_item_c2->setText(QString((result==0)?"fail":"pass"));
-        p_item_c2->setBackgroundColor((result==0)?Qt::red:Qt::green);
-
-        //set result
-        m_smtTool->result_map[node_name] = result;
-    }
-
-    //-----------------------------------------------------------------
-    //check result_map , if all pass, --> auto stop; --> and save log
-    map<string,bool>::iterator iter;
-    for(iter=m_smtTool->result_map.begin(); iter!=m_smtTool->result_map.end(); iter++)
-    {
-        if(iter->second == false)
-        {
-            return;
-        }
-    }
-    //all pass, auto stop
-    ui->label_result->setText(QString("pass"));
-    if(ui->checkBox_autoStop->isChecked() && ui->pushButton_smt->text() == QString("停止测试"))
-    {
-        emit ui->pushButton_smt->click();
-    }
-}
-
-void Widget::slot_dispUpdate_io()
-{
-#if (GPIO_DISPLAY_MODE == MODE_REGULAR)
-    // display frame_map value according to home_map key, then compare to home_map value
-    if(m_tableWidget_home->columnCount() == HOME_COL_CNT) //no io pin
-    {
-        return;
-    }
-
-    int row_cnt = m_tableWidget_home->rowCount();
-    for(int i=0; i<row_cnt; i++)
-    {
-        //tableWidget --> node name -->value = frame_map[node_name] --> tableWidget item value
-        QTableWidgetItem *p_item_c3 = m_tableWidget_home->item(i, 3);
-        if(p_item_c3 == nullptr)
-        {
-            continue;
-        }
-        QTableWidgetItem *p_item_c4 = m_tableWidget_home->item(i, 4);
-
-        string node_name = p_item_c3->text().toStdString();
-        string new_value = m_smtTool->frame_map[node_name];
-        p_item_c4->setText(QString::fromStdString(new_value));
-
-        // no need compare -->result
-        bool result = (new_value=="1")?true:false;
-        //p_item_c4->setText(QString((result==0)?"fail":"pass"));
-        p_item_c4->setText(QString::fromStdString(new_value));// for test
-        p_item_c4->setBackgroundColor((result==0)?Qt::red:Qt::green);
-
-        //set result
-        m_smtTool->result_map[node_name] = result;
-    }
-#elif (GPIO_DISPLAY_MODE == MODE_TABLE)
-    if(m_smtTool->home_map.find("GPIO") == m_smtTool->home_map.end()) //not exist node node "GPIO"
-    {
-        return;
-    }
-    //find gpio table
-    QList<QTableWidgetItem*> item_list = m_tableWidget_home->findItems(QString("GPIO"), Qt::MatchExactly);
-    if(item_list.isEmpty())
-    {
-        return;
-    }
-    int cnt = item_list.count();
-    QTableWidgetItem *p_item_io = item_list.first();
-    int row_index = p_item_io->row();
-    int col_index =p_item_io->column();
-    qDebug() << "find gpio tableWidget;" << "cnt = " << cnt << "; node_name = " << p_item_io->text() << "; row_index = " << row_index;
-
-    //------------------------------------------------------------------------------------------------
-    QTableWidget *p_table_io = (QTableWidget*)m_tableWidget_home->cellWidget(row_index, col_index+1);
-
-    map<string, item_t>::iterator iter;
-    for(iter=m_smtTool->home_map_io.begin(); iter!=m_smtTool->home_map_io.end(); iter++)
-    {
-        string pin_name = iter->first;
-        item_t pin_item = iter->second;
-        QList<QTableWidgetItem*> io_item_list = p_table_io->findItems(QString::fromStdString(pin_name), Qt::MatchExactly);
-        if(item_list.isEmpty())
-        {
-            continue;
-        }
-        QTableWidgetItem *p_item = io_item_list.first();
-        int row_index_io = p_item->row();
-        int col_index_io = p_item->column();
-        // updata pin value
-        string pin_newValue = m_smtTool->frame_map[pin_name];//? why on value
-        p_table_io->item(row_index_io+1, col_index_io)->setText(QString::fromStdString(pin_newValue));
-        p_table_io->item(row_index_io+1, col_index_io)->setBackgroundColor((pin_newValue=="1"?Qt::green:Qt::red));
-//        qDebug() << "pin_name = " << QString::fromStdString(pin_name) << "; row = "<< row_index_io << "; col = " << col_index_io \
-//                 << "pin_value = " << QString::fromStdString(pin_newValue);
-    }
-
-    //-----------------------------------------------------------------
-    //check result , if all io pass, --> set result_map["GPIO"] = true
-    for(iter=m_smtTool->home_map_io.begin(); iter!=m_smtTool->home_map_io.end(); iter++)
-    {
-        string pin_name = iter->first;
-        item_t pin_item = iter->second;
-        QList<QTableWidgetItem*> io_item_list = p_table_io->findItems(QString::fromStdString(pin_name), Qt::MatchExactly);
-        if(item_list.isEmpty())
-        {
-            continue;
-        }
-        QTableWidgetItem *p_item = io_item_list.first();
-        int row_index_io = p_item->row();
-        int col_index_io = p_item->column();
-        // read pin value
-        QString pin_result = p_table_io->item(row_index_io+1, col_index_io)->text();
-        if(pin_result.toInt() == 0)
-        {
-            return;
-        }
-    }
-    //----
-    m_smtTool->result_map["GPIO"] = true;
-
-#endif
-}
-
-bool Widget::valueCompare(QString value, QString set_value, QString type)
-{
-    if(type == "int")
-    {
-        if(set_value.isEmpty())
-        {
-            return (value.isEmpty()?false:true);
-        }
-        else
-        {
-           return (value.toInt()>set_value.toInt())?true:false;
-        }
-    }
-    else if(type == "string")
-    {
-        if(set_value.isEmpty())
-        {
-            return (value.isEmpty()?false:true);
-        }
-        else
-        {
-            return (value==set_value)?true:false;
-        }
-    }
-    else if(type == "flag" || type == "bool")
-    {
-        return (value.toInt()?true:false);
-    }
-
-    return false;
-}
-
-void Widget::loadConfig()
-{
-    //config.yaml --> config_map --> tableWidget
-    ifstream f_in("./config.yaml");
-    if(!f_in)
-    {
-        qDebug() << "read config.yaml error";
-        return;
-    }
-
-    YAML::Node config = YAML::Load(f_in);
-    if(!config.IsDefined()) //if(config.IsNull())
-    {
-        qDebug() << "yaml load error";
-        goto LOAD_END;
-    }
-
-    m_smtTool->config_map.clear();
-    for(YAML::const_iterator it=config.begin(); it!=config.end(); it++)
-    {
-        string node_name = it->first.as<string>();
-        string enable;
-        string type;
-        string value;
-        if(config[node_name]["enable"])
-        {
-            enable = config[node_name]["enable"].as<string>();
-        }
-        if(config[node_name]["type"])
-        {
-            type = config[node_name]["type"].as<string>();
-            if(config[node_name]["value"])
-            {
-                value = config[node_name]["value"].as<string>();
-            }
-        }
-
-        //cout << node_name << ":" << enable << "," << type << "," << value << endl;
-        //------------------------------------------------------------------------
-        m_smtTool->config_map[node_name].enable = enable;
-        m_smtTool->config_map[node_name].type   = type;
-        m_smtTool->config_map[node_name].value  = value;
-    }
-
-    LOAD_END:
-    f_in.close();
-}
-
-void Widget::dispConfigPage()
-{
-    //config table widget
-    if(!m_tableWidget_config)
-    {
-        m_tableWidget_config = new QTableWidget();
-        m_tableWidget_config->setColumnCount(CONFIG_COL_CNT);
-        QStringList headerList;
-        headerList << QString("测试项") << QString("设置值") << QString("比较类型");
-        m_tableWidget_config->setHorizontalHeaderLabels(headerList);
-        m_tableWidget_config->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);//Stretch//ResizeToContents
-        m_tableWidget_config->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
-
-        //ui->stackedWidget->insertWidget(CONFIG_WIDGET_INDEX,m_tableWidget_config);
-        ui->stackedWidget->addWidget(m_tableWidget_config);
-    }
-    else
-    {
-        m_tableWidget_config->clearContents();
-        for(int i=m_tableWidget_config->rowCount(); i>0; i--) //!!!
-        {
-            m_tableWidget_config->removeRow(i-1);
-        }
-    }
-    //ui->stackedWidget->setCurrentIndex(CONFIG_WIDGET_INDEX);
-    ui->stackedWidget->setCurrentWidget(m_tableWidget_config);
-    //---------------------------------------------------------------------------------
-    map<string, item_t>::iterator iter;
-    int row = 0;
-    for(iter = m_smtTool->config_map.begin(); iter!=m_smtTool->config_map.end(); iter++, row++)
-    {
-        string c0_text(iter->first);
-        string c0_enable(iter->second.enable);
-        string c1_text(iter->second.value);
-        string c2_text(iter->second.type); //maybe combox
-
-        QTableWidgetItem *p_item_c0 = new QTableWidgetItem();
-        QTableWidgetItem *p_item_c1 = new QTableWidgetItem();
-        QComboBox *p_item_c2 = new QComboBox();
-
-        Qt::ItemFlags flags = p_item_c0->flags();
-        flags &= ~Qt::ItemIsEditable;
-        p_item_c0->setFlags(flags);
-        p_item_c0->setCheckState((c0_enable=="0"?Qt::Unchecked:Qt::Checked));
-        p_item_c0->setText(QString::fromStdString(c0_text));
-        p_item_c1->setText(QString::fromStdString(c1_text));
-        p_item_c2->addItems(m_compareTypeList);
-        p_item_c2->setCurrentText(QString::fromStdString(c2_text));
-
-        m_tableWidget_config->insertRow(row);
-        m_tableWidget_config->setItem(row, 0, p_item_c0);
-        m_tableWidget_config->setItem(row, 1, p_item_c1);
-        m_tableWidget_config->setCellWidget(row, 2, p_item_c2);
-    }
-}
-
-void Widget::saveConfig()
-{
-    //clear home_map --> tableWidget --> config.yaml && home_map
-    ofstream f_out("./config.yaml");
-    if(!f_out)
-    {
-        qDebug() << "open config.yaml error";
-    }
-    YAML::Node config;
-
-    m_smtTool->home_map.clear();
-    m_smtTool->result_map.clear();
-
-    int row_cnt = m_tableWidget_config->rowCount();
-    for(int i=0; i<row_cnt; i++)
-    {
-        QTableWidgetItem *p_item_c0 = m_tableWidget_config->item(i, 0);
-        QTableWidgetItem *p_item_c1 = m_tableWidget_config->item(i, 1);
-        QComboBox *p_item_c2 = (QComboBox*)m_tableWidget_config->cellWidget(i, 2);
-
-        string node_name = p_item_c0->text().toStdString();
-        int enable = (p_item_c0->checkState()==Qt::Checked?1:0);
-        string value = p_item_c1->text().toStdString();
-        string type = p_item_c2->currentText().toStdString();
-
-        if(enable) //-->home_map
-        {
-            if(type == "io") //node_name = "GPIO", type="io", value="[00,01,02,12,13]"
-            {
-                //set gpio home_map
-                #if (GPIO_DISPLAY_MODE == MODE_REGULAR)
-                    setGpioList(value);  //config_map value --> pin name
-                #elif (GPIO_DISPLAY_MODE == MODE_TABLE)
-                    item_t item = {to_string(enable), type, value};
-                    m_smtTool->home_map[node_name] = item;
-                    m_smtTool->result_map[node_name] = 0;
-                    //init gpio_list
-                    setGpioList(value); //!!!!!!
-                #endif
-            }
-            else
-            {
-                item_t item = {to_string(enable), type, value};
-                m_smtTool->home_map[node_name] = item;
-                m_smtTool->result_map[node_name] = 0;
-            }
-        }
-
-        //--->config.yaml
-        config[node_name]["enable"] = (enable);
-        config[node_name]["type"] = type;
-        config[node_name]["value"] = value;
-    }
-
-    f_out << config;
-    f_out.close();
-}
-
-void Widget::setGpioList(string gpios)
-{
-    //gpio ---> home_map
-    //str = "[0,1,2,3,4,5,6,10,11,12,13,21,31,32,33,34,36,40,46,47,48]"
-    QString pinstr = QString::fromStdString(gpios);
-    pinstr.remove(QChar('['));
-    pinstr.remove(QChar(']'));
-    QStringList pin_list = pinstr.split(',', QString::SkipEmptyParts);
-    for(QString &pin:pin_list)
-    {
-        pin.insert(0, 'P');
-    }
-    //int pin_cnt = pin_list.count();
-    //-----------------------------------------------------------------
-    //use pin_list set vector<string> gpio_list in frame_map
-    m_smtTool->gpio_list.clear();
-    #if (GPIO_DISPLAY_MODE == MODE_REGULAR)
-    for(QString pin_name:pin_list)
-    {
-        item_t item = {to_string(1), "io", ""};
-        string node_name = pin_name.toStdString();
-        m_smtTool->home_map[node_name] = item;
-        m_smtTool->result_map[node_name] = 0;
-        m_smtTool->gpio_list.push_back(node_name);//gpio list in frame_map
-    }
-    #elif (GPIO_DISPLAY_MODE == MODE_TABLE)
-    for(QString pin_name:pin_list)
-    {
-        string node_name = pin_name.toStdString();
-        m_smtTool->gpio_list.push_back(node_name);//gpio list in frame_map
-    }
-
-    //item_t item = {to_string(enable), type, value};
-    //m_smtTool->home_map[node_name] = item;
-    #endif
-}
-
-void Widget::dispHomePage()
-{
-    if(!m_tableWidget_home)
-    {
-        m_tableWidget_home = new QTableWidget();
-        m_tableWidget_home->setColumnCount(HOME_COL_CNT);
-        QStringList headerList;
-        headerList << QString("测试项") << QString("值") << QString("测试结果");
-        m_tableWidget_home->setHorizontalHeaderLabels(headerList);
-        //m_tableWidget_home->setHorizontalHeaderItem();
-        m_tableWidget_home->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);//Stretch//ResizeToContents
-        m_tableWidget_home->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
-
-        ui->stackedWidget->addWidget(m_tableWidget_home);
-    }
-    else
-    {
-        m_tableWidget_home->clearContents();
-        for(int i=m_tableWidget_home->rowCount(); i>0; i--) //!!!
-        {
-            m_tableWidget_home->removeRow(i-1);
-        }
-        if(m_tableWidget_home->columnCount() != HOME_COL_CNT)
-        {
-            m_tableWidget_home->setColumnCount(HOME_COL_CNT);
-        }
-    }
-    ui->stackedWidget->setCurrentWidget(m_tableWidget_home);
-    //------------------------------------------------------------------------------------
-    map<string, item_t>::iterator iter;
-    int row=0;
-    #if (GPIO_DISPLAY_MODE == MODE_TABLE)
-
-    #elif (GPIO_DISPLAY_MODE == MODE_REGULAR)
-        int pin_row = 0;///!!!
-    #endif
-    for(iter=m_smtTool->home_map.begin(); iter != m_smtTool->home_map.end(); iter++, row++)
-    {
-        string c0_text(iter->first);
-        item_t item = iter->second;//
-
-        if(item.type == "io")
-        {
-            #if (GPIO_DISPLAY_MODE == MODE_TABLE)
-                if(m_tableWidget_home->rowCount()-1 < row)
-                {
-                    m_tableWidget_home->insertRow(row);
-                }
-                //node name
-                QTableWidgetItem *p_item_c0 = new QTableWidgetItem();
-                p_item_c0->setText(QString::fromStdString(c0_text));
-                Qt::ItemFlags flags = p_item_c0->flags();
-                flags &= ~Qt::ItemIsEditable;
-                p_item_c0->setFlags(flags);
-                m_tableWidget_home->setItem(row, 0, p_item_c0);
-                //gpio table
-                QString gpios = QString::fromStdString(item.value);
-                dispGpioTable(row, 1, gpios);
-            #elif (GPIO_DISPLAY_MODE == MODE_REGULAR)     
-                dispGpioTable(c0_text, item, pin_row);
-                row--;  ///!!!
-                pin_row++; // add pin_row, not row
-            #endif
-        }
-        else
-        {
-            if(m_tableWidget_home->rowCount()-1 < row)
-            {
-                m_tableWidget_home->insertRow(row);
-            }
-            //node name
-            QTableWidgetItem *p_item_c0 = new QTableWidgetItem();
-            p_item_c0->setTextAlignment(Qt::AlignHCenter);
-            p_item_c0->setText(QString::fromStdString(c0_text));
-            Qt::ItemFlags flags = p_item_c0->flags();
-            flags &= ~Qt::ItemIsEditable;
-            p_item_c0->setFlags(flags);
-            m_tableWidget_home->setItem(row, 0, p_item_c0);
-            //value & result
-            QTableWidgetItem *p_item_c1 = new QTableWidgetItem();
-            p_item_c1->setTextAlignment(Qt::AlignHCenter);
-            p_item_c1->setFlags(flags);
-            m_tableWidget_home->setItem(row, 1, p_item_c1);
-            QTableWidgetItem *p_item_c2 = new QTableWidgetItem();
-            p_item_c2->setTextAlignment(Qt::AlignHCenter);
-            p_item_c2->setFlags(flags);
-            m_tableWidget_home->setItem(row, 2, p_item_c2);
-        }
-    }
-}
-
-void Widget::dispGpioTable(string pin_name, item_t item, int pin_row) //MODE_REGULAR
-{
-    //regular display format
-    if(m_tableWidget_home->columnCount() == HOME_COL_CNT)
-    {
-        m_tableWidget_home->setColumnCount(HOME_COL_CNT + 2);
-        QStringList headerList;
-        headerList << QString("测试项") << QString("值") << QString("测试结果") << QString("IO") << QString("测试结果");
-        m_tableWidget_home->setHorizontalHeaderLabels(headerList);
-    }
-    //----------------------------------------------------
-    if(m_tableWidget_home->rowCount()-1 < pin_row)
-    {
-        m_tableWidget_home->insertRow(pin_row);
-    }
-
-    QTableWidgetItem *p_item_c3 = new QTableWidgetItem();
-    p_item_c3->setTextAlignment(Qt::AlignHCenter);
-    p_item_c3->setText(QString::fromStdString(pin_name));
-    Qt::ItemFlags flags = p_item_c3->flags();
-    flags &= ~Qt::ItemIsEditable;
-    p_item_c3->setFlags(flags);
-    m_tableWidget_home->setItem(pin_row, 3, p_item_c3);//
-    //value & result
-    QTableWidgetItem *p_item_c4 = new QTableWidgetItem();
-    p_item_c4->setTextAlignment(Qt::AlignHCenter);
-    p_item_c4->setFlags(flags);
-    m_tableWidget_home->setItem(pin_row, 4, p_item_c4);
-}
-
-void Widget::dispGpioTable(int row, int col, QString gpios) //MODE_TABLE;  display io in Independent table
-{
-    //-----------------------------------------------------------------
-    //str = "[0,1,2,3,4,5,6,10,11,12,13,21,31,32,33,34,36,40,46,47,48]"
-    gpios.remove(QChar('['));
-    gpios.remove(QChar(']'));
-    QStringList pin_list = gpios.split(',', QString::SkipEmptyParts);
-        m_smtTool->home_map_io.clear();
-    for(QString &pin:pin_list)
-    {
-        pin.insert(0, 'P');
-        //----set home_map_io
-        string node_name = pin.toStdString();
-        item_t item = {"1", "io", ""};
-        m_smtTool->home_map_io[node_name] = item;
-    }
-
-    int pin_cnt = pin_list.count();
-    int row_cnt = 4;
-    int col_cnt = pin_cnt/2; col_cnt += pin_cnt%2;
-    qDebug() << "pin_cnt = " << pin_cnt  << " col_cnt = " << col_cnt;
-
-    //-----------------------------------------------------------------------
-    m_tableWidget_home->setSpan(row, col, 1, 2);//
-    //span then insert tableWidget
-    QTableWidget *p_item_c1 = new QTableWidget();
-    p_item_c1->setRowCount(row_cnt);
-    p_item_c1->setColumnCount(col_cnt);
-
-    p_item_c1->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-    p_item_c1->horizontalHeader()->setVisible(false);
-    p_item_c1->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-    //p_item_c1->verticalHeader()->setDefaultSectionSize(10);//no use
-    p_item_c1->verticalHeader()->setVisible(false);
-
-    m_tableWidget_home->setCellWidget(row, 1, p_item_c1);
-    //---------------------------------------------------------
-    for(int i=0; i<row_cnt; i++)
-    {
-        for(int j=0; j<col_cnt; j++)
-        {
-            QTableWidgetItem *item = new QTableWidgetItem();
-            //item->setSizeHint(QSize(30,10));//no use
-            p_item_c1->setItem(i, j, item);
-
-            int index = col_cnt*(i/2) + j;
-            if(i%2==0 && index<pin_cnt)
-            {              
-                item->setText(pin_list.at(index));     
-            }
-        }
-    }
-}
-
-void Widget::slot_saveLog()
-{
-    //系统时间 测试耗时 号码校验是否勾选 输入的imei值
-    //测试项 实际值 设置值 测试结果
-    QString file_name = QString("log_%1.txt").arg(QDateTime::currentDateTime().toString("yyyyMMdd"));
-    QFile file(file_name);
-    if (file.open(QFile::ReadWrite | QFile::Append))
-    {
-         QTextStream out(&file);
-         //out.setFieldWidth(10);
-         //out.setFieldAlignment(QTextStream::AlignLeft);
-         out << "============================" << endl;
-         out << QString("时间：") << QDateTime::currentDateTime().toString("yyyy.MM.dd hh:mm:ss") << endl;
-         out << QString("测试耗时：")<< ui->label_spendTime->text() << endl;
-         //out << QString("测试结果：") << ui->label_result->text() << endl;
-        if(ui->checkBox_numCheck->isChecked())
-        {
-            out << QString("IMEI:") << ui->lineEdit_IMEI->text() << endl;
-        }
-
-        out << "----------------------------" << endl;
-        out << QString("测试项") << "\t\t" \
-            << QString("值") << "\t\t" \
-            << QString("结果") << "\t" << endl;
-        int rowCnt = m_tableWidget_home->rowCount();
-        for(int i=0; i<rowCnt; i++)
-        {
-            if(m_tableWidget_home->item(i,0))
-            {
-                string c0_text = m_tableWidget_home->item(i,0)->text().toStdString();
-                if(m_smtTool->home_map[c0_text].type == "io")
-                {
-                    out << m_tableWidget_home->item(i,0)->text() << "\t:" << endl;
-                        //<< m_smtTool->result_map[c0_text] << endl;
-                }
-                else
-                {
-                    out << m_tableWidget_home->item(i,0)->text() << "\t:" \
-                     << m_tableWidget_home->item(i,1)->text() << "\t" \
-                     << m_tableWidget_home->item(i,2)->text() << endl;
-                }
-            }
-        }
-        //gpio
-        if(m_tableWidget_home->item(0,3))
-        {
-            for(int i=0; i<rowCnt; i++)
-            {
-                if(m_tableWidget_home->item(i,3))
-                {
-                    out << m_tableWidget_home->item(i,3)->text() << "\t:" \
-                     << m_tableWidget_home->item(i,4)->text() << endl;
-                }
-            }
-        }
-
-         //out << "===================end" << endl;
-     }
-}
 
