@@ -25,7 +25,7 @@ Widget::Widget(QWidget *parent)
 {
     ui->setupUi(this);
     this->setLayout(ui->verticalLayout_all);
-    this->setWindowTitle(QString("嘉为SMT测试工具_V2.0"));//JawaySMTTool_V2.0
+    this->setWindowTitle(QString("嘉为SMT测试工具_V2.01"));//JawaySMTTool_V2.0
 
     //--------------------------------------------------------------------------------------------------
     ui->pushButton_smt->setEnabled(false);
@@ -362,7 +362,7 @@ void Widget::slot_readyRead()
     if(!rxArray.isEmpty())
     {
         m_rxArray.append(rxArray);
-        while(!frame_head_flag && m_rxArray.length()>2)
+        while(!frame_head_flag && m_rxArray.length()>2)//check frame head
         {
             if((unsigned char)m_rxArray.at(0) == 0xb6 && (unsigned char)m_rxArray.at(1) == 0x6b)
             {
