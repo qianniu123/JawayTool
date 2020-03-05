@@ -25,7 +25,7 @@ Widget::Widget(QWidget *parent)
 {
     ui->setupUi(this);
     this->setLayout(ui->verticalLayout_all);
-    this->setWindowTitle(QString("嘉为SMT测试工具_V2.01"));//JawaySMTTool_V2.0
+    this->setWindowTitle(QString("嘉为SMT测试工具_V2.02"));//JawaySMTTool_V2.0
 
     //--------------------------------------------------------------------------------------------------
     ui->pushButton_smt->setEnabled(false);
@@ -111,7 +111,7 @@ void Widget::init()
     m_tableWidget_home   = nullptr;
 
     m_compareTypeList << "int" << "string" << "bool" << "flag" << "io";
-    //--------------------------------------------------------
+    //-----------------------------------------------------------------
     loadConfig();
     dispConfigPage();
     saveConfig();
@@ -244,6 +244,7 @@ void Widget::on_pushButton_smt_clicked()
         m_smt_timer->start();//smt running
         ui->label_spendTime->setText(QString::number(0));        
 
+        dispHomePage();//clear the value and result
         #ifdef SELF_TEST_ENABLE
             m_test_timer->start();
         #endif
@@ -768,14 +769,15 @@ void Widget::setGpioList(string gpios)
 {
     //gpio ---> home_map
     //str = "[0,1,2,3,4,5,6,10,11,12,13,21,31,32,33,34,36,40,46,47,48]"
+    //str = "[P00,P01,P02,P03,P04,P05,P06,P10,P11,P12,P13,GPIO21,GPIO31,GPIO32,GPIO33,GPIO34,GPIO36,GPIO40,GPIO46,GPIO47,GPIO48]"
     QString pinstr = QString::fromStdString(gpios);
     pinstr.remove(QChar('['));
     pinstr.remove(QChar(']'));
     QStringList pin_list = pinstr.split(',', QString::SkipEmptyParts);
-    for(QString &pin:pin_list)
-    {
-        pin.insert(0, 'P');
-    }
+    //for(QString &pin:pin_list)
+    //{
+    //   pin.insert(0, 'P');
+    //}
     //int pin_cnt = pin_list.count();
     //-----------------------------------------------------------------
     //use pin_list set vector<string> gpio_list in frame_map
@@ -899,7 +901,7 @@ void Widget::dispGpioTable(string pin_name, item_t item, int pin_row) //MODE_REG
     {
         m_tableWidget_home->setColumnCount(HOME_COL_CNT + 2);
         QStringList headerList;
-        headerList << QString("测试项") << QString("值") << QString("测试结果") << QString("IO") << QString("测试结果");
+        headerList << QString("测试项") << QString("值") << QString("测试结果") << QString("测试项") << QString("测试结果");
         m_tableWidget_home->setHorizontalHeaderLabels(headerList);
     }
     //----------------------------------------------------
@@ -932,7 +934,7 @@ void Widget::dispGpioTable(int row, int col, QString gpios) //MODE_TABLE;  displ
         m_smtTool->home_map_io.clear();
     for(QString &pin:pin_list)
     {
-        pin.insert(0, 'P');
+        //pin.insert(0, 'P');
         //----set home_map_io
         string node_name = pin.toStdString();
         item_t item = {"1", "io", ""};

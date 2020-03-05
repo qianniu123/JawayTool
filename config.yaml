@@ -1,70 +1,80 @@
-IMEI:
+ADC:
   enable: 1
-  type: str_notnull
+  type: int
+  value: 100
+ADC_FLAG:
+  enable: 1
+  type: bool
   value: ""
-SN:
+BLE_MAC:
   enable: 1
-  type: str_notnull
+  type: string
   value: ""
-ICCID:
+GPIO:
   enable: 1
-  type: str_notnull
+  type: io
+  value: "[P00,P01,P02,P03,P04,P05,P06,P10,P11,P12,P13,GPIO21,GPIO31,GPIO32,GPIO33,GPIO34,GPIO36,GPIO40,GPIO46,GPIO47,GPIO48]"
+GPS:
+  enable: 1
+  type: int
+  value: 30
+GSM:
+  enable: 1
+  type: int
+  value: 30
+Gsensor:
+  enable: 1
+  type: bool
   value: ""
 HARDVER:
   enable: 1
-  type: str_equal
-  value: JWMB1V01
-SOFTVER:
+  type: string
+  value: 0201BD10
+ICCID:
   enable: 1
-  type: str_equal
-  value: 02010001
+  type: string
+  value: ""
+IMEI:
+  enable: 1
+  type: string
+  value: ""
+LOCK:
+  enable: 1
+  type: bool
+  value: ""
 MODEL:
   enable: 1
-  type: int_notnull
+  type: int
   value: ""
-BLE_MAC:
-  enable: 0
-  type: str_notnull
-GSM:
-  enable: 0
-  type: int_bigger
-GPS:
-  enable: 0
-  type: int_bigger
-SNR:
-  enable: 0
-  type: int_bigger
-ADC:
-  enable: 0
-  type: int_bigger
-电门:
-  enable: 0
-  type: int_flag
-外电:
-  enable: 0
-  type: int_bigger
-GSensor:
-  enable: 0
-  type: int_bigger
-ADC_FLAG:
-  enable: 0
-  type: int_bigger
-LOCK:
-  enable: 0
-  type: int_bigger
-RF:
-  enable: 0
-  type: int_bigger
-PWM:
-  enable: 0
-  type: int_bigger
 MUART:
-  enable: 0
-  type: int_bigger
-
-GPIO:
-  enable: 0
-  type: int_flag
-    #[0,1,2,3,4,5,6,,10,11,12,13,21,31,32,33,34,36,40,46,47,48]
-
-
+  enable: 1
+  type: bool
+  value: ""
+PWM:
+  enable: 1
+  type: bool
+  value: ""
+RF:
+  enable: 1
+  type: bool
+  value: ""
+SN:
+  enable: 1
+  type: string
+  value: ""
+SNR:
+  enable: 1
+  type: int
+  value: 30
+SOFTVER:
+  enable: 1
+  type: string
+  value: 02010B01
+外电:
+  enable: 1
+  type: bool
+  value: ""
+电门:
+  enable: 1
+  type: bool
+  value: ""
