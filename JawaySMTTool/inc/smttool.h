@@ -59,6 +59,9 @@ public:
     map<string, item_t> home_map_io;//if MODEL TABLE, no use
     map<string, bool>   result_map;//total  test result
 
+    map<int,map<string, string>> model_matnr_map;//model->MATNR->jaway config
+    //model_matnr_config_t model_matnr_config[MATNR_NUM];
+
 signals:
     void sig_sendBuf(unsigned char *data, int len);
 

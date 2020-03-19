@@ -238,7 +238,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QLabel" name="label_result">
+     <widget class="QLabel" name="label_model">
       <property name="minimumSize">
        <size>
         <width>30</width>
@@ -246,7 +246,7 @@
        </size>
       </property>
       <property name="text">
-       <string>test result</string>
+       <string>model</string>
       </property>
      </widget>
     </item>

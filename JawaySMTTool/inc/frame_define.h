@@ -53,43 +53,36 @@ typedef struct
 #include <map>
 #include <string>
 using namespace std;
-/*
-typedef struct
-{
-    map<string, string> imei;
-    map<string, string> sn;
-    map<string, string> software;
-    map<string, string> hardware;
-    map<string, char>   deviceType;
-    map<string, char>   motorType;
-    map<string, string> iccid;
-    map<string, char>   csq;
-    map<string, char>   gps_csq;
-    map<string, char>   gps_snr;
-    map<string, string> ble_mac;
-    map<string, char>   state_flag;
-    map<string, string> model;
-    map<string, char>   adc;
-    //----------------------------
-    map<string, string> gpio_flag;
-}frame_map_t;
-*/
-/*
-typedef enum
-{
-    STRING,
-    BOOL,
-    INT,
-}type_t;
 
-typedef struct
-{
-    type_t type;
+/*//物料号(MATNR)-----> 嘉为配置(config)-----> 型号(model)
+30200-QSM-A510-4GEU     B10_MB2     0x12
+30200-QSM-A510-NULL     B10_MB8     0x16
 
-}item_t;
+30200-TGC-A000-2GCHN    B10_2G      0x13
+30200-TGD-A000-2GCHN    B10_2G      0x1C
+
+30200-TBG-A000-NULL     B10_MB7     0x14
+30200-TBG-A000-4GEU     B10_MB1     0x15
+
+30200-QSM-F000-4GEU     B10_MB9     0x1A
+30200-QSM-F000-NULL     B10_MB10    0x1D
+30200-QSM-F600-2GCHN	B10_2G      0x1E
+
+30200-TAC-A000-2GCHN	B11_MB3     0x19
+30200-TAC-E300-4GEU     B11_MB2     0x18
+30200-TAC-E300-NULL     B11_MB4     0x1F
+30200-TAC-E601-NULL     B11_MB1     0x17
+
+30200-QSM-G500-4GEU     B10_MB9     0x1B
 */
 
-
+#define MATNR_NUM 14
+typedef struct
+{
+    uint16_t model;
+    string   matnr;
+    string   config;
+}model_matnr_config_t;
 
 
 #endif // FRAME_DEFINE_H

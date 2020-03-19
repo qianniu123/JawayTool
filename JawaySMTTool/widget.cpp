@@ -25,7 +25,7 @@ Widget::Widget(QWidget *parent)
 {
     ui->setupUi(this);
     this->setLayout(ui->verticalLayout_all);
-    this->setWindowTitle(QString("嘉为SMT测试工具_V2.02"));//JawaySMTTool_V2.0
+    this->setWindowTitle(QString("嘉为SMT测试工具_V2.03"));//JawaySMTTool_V2.0
 
     //--------------------------------------------------------------------------------------------------
     ui->pushButton_smt->setEnabled(false);
@@ -43,11 +43,11 @@ Widget::Widget(QWidget *parent)
 
     connect(ui->lineEdit_IMEI, &QLineEdit::textChanged, this, &Widget::slot_IMEI_changed);
 
-    ui->label_result->setAlignment(Qt::AlignCenter);
+    ui->label_model->setAlignment(Qt::AlignCenter);
     QFont result_font;
     result_font.setBold(true);
-    result_font.setPixelSize(50);
-    ui->label_result->setFont(result_font);
+    result_font.setPixelSize(30);
+    ui->label_model->setFont(result_font);
 
     //------------------------------------
     m_smt_timer = new QTimer();
@@ -147,7 +147,7 @@ void Widget::slot_test_timeout()
     m_smtTool->frame_map["LOCK"] = "0";
     m_smtTool->frame_map["外电"] = "1";
     m_smtTool->frame_map["电门"] = "0";
-
+     m_smtTool->frame_map["MODEL"] = "33";
     //m_smtTool->frame_map["GPIO"] = to_string(0x5a5a);
 
 
@@ -316,6 +316,7 @@ void Widget::slot_smt_timeout()
             {
                 emit ui->pushButton_smt->clicked(); //auto stop
             }
+            ui->label_model->setText(test_state);
         }
         else if(m_smtTool->smt_state == STOP)
         {
@@ -326,7 +327,7 @@ void Widget::slot_smt_timeout()
     //---------------------------------------------------------
     //smt_run_time++;
     ui->label_spendTime->setText(QString::number(smt_run_time));
-    ui->label_result->setText(test_state);
+
 }
 
 void Widget::slot_sendData(unsigned char *data, int len)
@@ -453,6 +454,21 @@ void Widget::slot_dispUpdate()
     }
 
     //-----------------------------------------------------------------
+    //display model MATNR
+    QString model_str = QString::fromStdString(m_smtTool->frame_map["MODEL"]);
+    uint16_t model = model_str.toUShort();
+    auto second = m_smtTool->model_matnr_map[model];
+    if(second.size())
+    {
+        QString matur = QString::fromStdString(second.begin()->first);
+        QString jaway_config = QString::fromStdString(second.begin()->second);
+        ui->label_model->setText(QString("%1(%2)").arg(matur).arg(jaway_config));
+    }
+    else
+    {
+        ui->label_model->setText(QString("MATUR error"));
+    }
+
     //check result_map , if all pass, --> auto stop; --> and save log
     map<string,bool>::iterator iter;
     for(iter=m_smtTool->result_map.begin(); iter!=m_smtTool->result_map.end(); iter++)
@@ -463,11 +479,11 @@ void Widget::slot_dispUpdate()
         }
     }
     //all pass, auto stop
-    ui->label_result->setText(QString("pass"));
     if(ui->checkBox_autoStop->isChecked() && ui->pushButton_smt->text() == QString("停止测试"))
     {
         emit ui->pushButton_smt->click();
-    }
+    }   
+
 }
 
 void Widget::slot_dispUpdate_io()

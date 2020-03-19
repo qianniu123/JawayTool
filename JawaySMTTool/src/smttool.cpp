@@ -6,7 +6,34 @@
 
 SMTTool::SMTTool(QObject *parent) : QObject(parent)
 {
-    //gpio_list.push_back();
+
+    //init model->MATNR->jaway config  
+    model_matnr_config_t model_matnr_config[] =
+     {
+        {0x12, "30200-QSM-A510-4GEU", "B10_MB2"},
+        {0x16, "30200-QSM-A510-NULL", "B10_MB8"},
+        {0x13, "30200-TGC-A000-2GCHN", "B10_2G"},
+        {0x1C, "30200-TGD-A000-2GCHN", "B10_2G"},
+        {0x14, "30200-TBG-A000-NULL", "B10_MB7"},
+        {0x15, "30200-TBG-A000-4GEU", "B10_MB1"},
+        {0x1A, "30200-QSM-F000-4GEU", "B10_MB9"},
+        {0x1D, "30200-QSM-F000-NULL", "B10_MB10"},
+        {0x1E, "30200-QSM-F600-2GCHN", "B10_2G"},
+        {0x19, "30200-TAC-A000-2GCHN", "B11_MB3"},
+        {0x18, "30200-TAC-E300-4GEU", "B11_MB2"},
+        {0x1F, "30200-TAC-E300-NULL", "B11_MB4"},
+        {0x17, "30200-TAC-E601-NULL", "B11_MB1"},
+        {0x1B, "30200-QSM-G500-4GEU", "B10_MB9"}
+     };
+
+    int size = sizeof(model_matnr_config)/sizeof(model_matnr_config_t);
+    map<string, string> second;
+    for(int i=0; i<size; i++)
+    {
+       second.clear();
+       second[model_matnr_config[i].matnr] = model_matnr_config[i].config;
+       model_matnr_map[model_matnr_config[i].model] = second;
+    }
 }
 SMTTool::~SMTTool()
 {
@@ -76,8 +103,8 @@ void SMTTool::parse_pack(unsigned char *pack, int size)
     frame_map["BLE_MAC"] = string(ble_mac);
 
     //type = enum-->int-->string
-    frame_map["DEVICE_TYPE"] = to_string(p_frame->deviceType);
-    frame_map["MOTOR_TYPE"] = to_string(p_frame->motorType);
+    frame_map["DEVICE_TYPE"] = to_string(p_frame->deviceType); //系统类型
+    frame_map["MOTOR_TYPE"] = to_string(p_frame->motorType); //车型
 
     //type = int-->string
     frame_map["GSM"] = to_string(p_frame->csq);
@@ -86,7 +113,7 @@ void SMTTool::parse_pack(unsigned char *pack, int size)
     frame_map["ADC"] = to_string(p_frame->adc);
 
     //type = short-->string
-    frame_map["MODEL"] = to_string(*(int*)p_frame->model);
+    frame_map["MODEL"] = to_string(*(uint16_t*)p_frame->model); //型号（料号）
 
     //state -----------------------------------------------
     //type = bool-->string
