@@ -638,7 +638,7 @@ void Widget::slot_dispUpdate_io()
 
 void Widget::slot_dispUpdate_model()
 {
-    //display model MATNR and check devicetype
+    //display model MATNR and check devicetype(package test vs smt test)
     QString model_str = QString::fromStdString(m_smtTool->frame_map["MODEL"]);
     uint16_t model = model_str.toUShort();
     QString deviceType_str = QString::fromStdString(m_smtTool->frame_map["DEVICE_TYPE"]);
@@ -677,6 +677,17 @@ void Widget::slot_dispUpdate_model()
             ui->label_model->setPalette(pe_red);
             ui->label_model->setText(QString("MATNR error"));
         }
+        //-------------
+        if(m_smtTool->model_deviceType_map[model] == deviceType)
+        {
+            ui->label_model_type_error->setVisible(false);
+        }
+        else
+        {
+            qDebug() << "model_deviceType_map[model]="<< m_smtTool->model_deviceType_map[model];
+            ui->label_model_type_error->setVisible(true);
+            ui->label_model_type_error->setText(QString("型号(%1)和系统类型(%2)不匹配").arg(model).arg(deviceType));
+        }
     }
     else //smt test
     {
@@ -687,24 +698,12 @@ void Widget::slot_dispUpdate_model()
         }
         else
         {
-            ui->label_model->setText(QString("MATNR error"));
-            ui->label_model->setPalette(pe_red);
+            ui->label_model->setText(QString("no MATNR"));
+            //ui->label_model->setPalette(pe_red);
         }
     }
 
     //qDebug() << matnr << ":" << model_str <<"("<< model<<")-->"<< deviceType_str<<"("<<deviceType<<")";
-
-    if(m_smtTool->model_deviceType_map[model] == deviceType)
-    {
-        ui->label_model_type_error->setVisible(false);
-    }
-    else
-    {
-        qDebug() << "model_deviceType_map[model]="<< m_smtTool->model_deviceType_map[model];
-        ui->label_model_type_error->setVisible(true);
-        ui->label_model_type_error->setText(QString("型号(%1)和系统类型(%2)不匹配").arg(model).arg(deviceType));
-    }
-
 }
 
 bool Widget::valueCompare(QString value, QString set_value, QString type)
