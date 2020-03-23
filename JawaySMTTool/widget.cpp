@@ -40,17 +40,20 @@ Widget::Widget(QWidget *parent)
 
     connect(ui->lineEdit_IMEI, &QLineEdit::textChanged, this, &Widget::slot_IMEI_changed);
 
+    QFont font;
+    font.setBold(true);
+    font.setPixelSize(30);
+    ui->label_model->setFont(font);
     ui->label_model->setAlignment(Qt::AlignCenter);
-    QFont result_font;
-    result_font.setBold(true);
-    result_font.setPixelSize(30);
-    ui->label_model->setFont(result_font);
 
     QPalette pe;
-    pe.setColor(QPalette::Text, Qt::red);
-    ui->label_model_type_error->setVisible(false);
+    pe.setColor(QPalette::WindowText, Qt::red);
+    font.setBold(false);
+    font.setPixelSize(15);
     ui->label_model_type_error->setPalette(pe);
-    ui->label_model_type_error->setFont(result_font);
+    ui->label_model_type_error->setFont(font);
+    ui->label_model_type_error->setAlignment(Qt::AlignCenter);
+    ui->label_model_type_error->setVisible(false);
     //----------------------------------------------------------------------
     m_smt_timer = new QTimer();
     m_smt_timer->setInterval(1000);//ms
@@ -115,6 +118,7 @@ void Widget::init()
     m_compareTypeList << "int" << "string" << "bool" << "flag" << "io";
 
     ui->comboBox_matnr->insertItems(0, m_smtTool->matnr_strlist);
+    connect(ui->comboBox_matnr, &QComboBox::currentTextChanged, this, &Widget::slot_combox_matnr_changed);
     //-----------------------------------------------------------------
     loadConfig();
     dispConfigPage();
@@ -147,13 +151,13 @@ void Widget::slot_test_timeout()
     m_smtTool->frame_map["GSensor"] = "1";
     m_smtTool->frame_map["HARDVER"] = "JWMB1V01";
     m_smtTool->frame_map["ICCID"] = "123456";
-    m_smtTool->frame_map["IMEI"] = "";
+    m_smtTool->frame_map["IMEI"] = "123456789";
     m_smtTool->frame_map["LOCK"] = "0";
     m_smtTool->frame_map["外电"] = "1";
     m_smtTool->frame_map["电门"] = "0";
 
-    m_smtTool->frame_map["MODEL"] = "18";
-    m_smtTool->frame_map["DEVICE_TYPE"] = "2";
+    m_smtTool->frame_map["MODEL"] = "21";
+    m_smtTool->frame_map["DEVICE_TYPE"] = "1";
     //m_smtTool->frame_map["GPIO"] = to_string(0x5a5a);
 
 
@@ -178,19 +182,39 @@ void Widget::slot_numCheck_stateChanged(int state)
 {   
     //checked=2 , unchecked=0
     ui->frame->setVisible((state==2)?true:false);
-    if(state == 2)//checked
+    if(state == 2)//checked //package test
     {
         ui->lineEdit_IMEI->setFocus(); //forcus
+
+        item_t imei_item = m_smtTool->home_map["IMEI"];
+        imei_item.value = "null";
+        m_smtTool->home_map["IMEI"] = imei_item;
     }
-    else if(state == 0)
+    else if(state == 0) //SMT test
     {
         ui->lineEdit_IMEI->clear();
+
+        item_t imei_item = m_smtTool->home_map["IMEI"];
+        imei_item.value = "";
+        m_smtTool->home_map["IMEI"] = imei_item;
     }
 
-//    string node_name = ui->label_IMEI->text().toStdString();
-//    item_t item = m_smtTool->home_map[node_name];
-//    item.value = "";
-//    m_smtTool->home_map[node_name] = item;
+    //-----------------------------------------------------------------------------------------------
+    //clear imei & model test result
+    if(ui->pushButton_smt->text() == QString("停止测试"))
+    {
+        ui->label_model->clear();
+        m_smtTool->result_map["IMEI"] = 0;
+        QList<QTableWidgetItem*> p_item_list = m_tableWidget_home->findItems("IMEI", Qt::MatchFixedString);
+        if(!p_item_list.isEmpty())
+        {
+            QTableWidgetItem* p_item_c0 = p_item_list.at(0);
+            int row_index = p_item_c0->row();
+            QTableWidgetItem* p_item_c2 = m_tableWidget_home->item(row_index, 2);
+            p_item_c2->setBackgroundColor(Qt::red);
+            p_item_c2->setText(QString("fail"));
+        }
+    }
 }
 
 void Widget::slot_autoStop_stateChanged(int state)
@@ -206,6 +230,30 @@ void Widget::slot_IMEI_changed(QString text)
     m_smtTool->home_map["IMEI"] = item;
 
     qDebug() << "home_map new imei = " << text;
+    //------------------------------------------------------------------------------------------------
+    //clear old imei result  //when test is stoped, alse clear the result!
+    if(ui->pushButton_smt->text() == QString("停止测试"))//(m_smt_timer && m_smt_timer->isActive()) //if is testing
+    {
+        m_smtTool->result_map["IMEI"] = false;
+        QList<QTableWidgetItem*> p_item_list = m_tableWidget_home->findItems("IMEI", Qt::MatchFixedString);
+        if(!p_item_list.isEmpty())
+        {
+            QTableWidgetItem* p_item_c0 = p_item_list.at(0);
+            int row_index = p_item_c0->row();
+            QTableWidgetItem* p_item_c2 = m_tableWidget_home->item(row_index, 2);
+            p_item_c2->setBackgroundColor(Qt::red);
+            p_item_c2->setText(QString());
+        }
+    }
+}
+
+void Widget::slot_combox_matnr_changed(QString text)
+{
+    //clear old label_model result
+    if(ui->pushButton_smt->text() == QString("停止测试"))
+    {
+        ui->label_model->clear();
+    }
 }
 
 void Widget::on_pushButton_open_clicked()
@@ -266,6 +314,13 @@ void Widget::on_pushButton_smt_clicked()
         #ifdef SELF_TEST_ENABLE
             m_test_timer->stop();
         #endif
+
+        //if num checkBox enabled; set focus in IMEI lineEdit
+        if(ui->checkBox_numCheck->isChecked())
+        {
+            ui->lineEdit_IMEI->clear();
+            ui->lineEdit_IMEI->setFocus();
+        }
 
         //save log
         slot_saveLog();
@@ -457,36 +512,13 @@ void Widget::slot_dispUpdate()
 
         //set result
         m_smtTool->result_map[node_name] = result;
+
     }
 
-    //-----------------------------------------------------------------
+    //-----------------------------------------
     //display model MATNR and check devicetype
-    QString model_str = QString::fromStdString(m_smtTool->frame_map["MODEL"]);
-    uint16_t model = model_str.toUShort();
-    auto second = m_smtTool->model_matnr_map[model];
-    if(second.size())
-    {
-        QString matur = QString::fromStdString(second.begin()->first);
-        QString jaway_config = QString::fromStdString(second.begin()->second);
-        ui->label_model->setText(QString("%1(%2)").arg(matur).arg(jaway_config));
-    }
-    else
-    {
-        ui->label_model->setText(QString("MATUR error"));
-    }
-
-    QString deviceType_str = QString::fromStdString(m_smtTool->frame_map["DEVICE_TYPE"]);
-    uint8_t deviceType = (uint8_t)deviceType_str.toUInt();
-    if(m_smtTool->model_deviceType_map[model] == deviceType)
-    {
-        ui->label_model_type_error->setVisible(false);
-    }
-    else
-    {
-        ui->label_model_type_error->setVisible(true);
-        ui->label_model_type_error->setText(QString("型号和设备类型不匹配"));
-    }
-
+    slot_dispUpdate_model();
+    //----------------------------------------------------------------------------------
     //check result_map , if all pass, --> auto stop; --> and save log
     map<string,bool>::iterator iter;
     for(iter=m_smtTool->result_map.begin(); iter!=m_smtTool->result_map.end(); iter++)
@@ -501,7 +533,6 @@ void Widget::slot_dispUpdate()
     {
         emit ui->pushButton_smt->click();
     }   
-
 }
 
 void Widget::slot_dispUpdate_io()
@@ -603,6 +634,77 @@ void Widget::slot_dispUpdate_io()
     m_smtTool->result_map["GPIO"] = true;
 
 #endif
+}
+
+void Widget::slot_dispUpdate_model()
+{
+    //display model MATNR and check devicetype
+    QString model_str = QString::fromStdString(m_smtTool->frame_map["MODEL"]);
+    uint16_t model = model_str.toUShort();
+    QString deviceType_str = QString::fromStdString(m_smtTool->frame_map["DEVICE_TYPE"]);
+    uint8_t deviceType = (uint8_t)deviceType_str.toUInt();
+    QString matnr;
+    QString jaway_config;
+    auto second = m_smtTool->model_matnr_map[model];
+    if(second.size())
+    {
+        matnr = QString::fromStdString(second.begin()->first);
+        jaway_config = QString::fromStdString(second.begin()->second);
+    }
+
+    QPalette pe_red;
+    pe_red.setColor(QPalette::WindowText, Qt::red);
+    QPalette pe_black;
+    pe_black.setColor(QPalette::WindowText, Qt::black);
+
+    if(ui->checkBox_numCheck->isChecked()) //package test
+    {
+        QString matnr_tmp = ui->comboBox_matnr->currentText(); //get matnr from combo_matnr
+        if(!matnr.isEmpty())
+        {
+            ui->label_model->setText(QString("%1(%2)").arg(matnr).arg(jaway_config));
+            if(matnr_tmp != matnr)
+            {
+                ui->label_model->setPalette(pe_red);
+            }
+            else
+            {
+                ui->label_model->setPalette(pe_black);
+            }
+        }
+        else
+        {
+            ui->label_model->setPalette(pe_red);
+            ui->label_model->setText(QString("MATNR error"));
+        }
+    }
+    else //smt test
+    {
+        if(!matnr.isEmpty())
+        {
+            ui->label_model->setText(QString("%1(%2)").arg(matnr).arg(jaway_config));
+            ui->label_model->setPalette(pe_black);
+        }
+        else
+        {
+            ui->label_model->setText(QString("MATNR error"));
+            ui->label_model->setPalette(pe_red);
+        }
+    }
+
+    //qDebug() << matnr << ":" << model_str <<"("<< model<<")-->"<< deviceType_str<<"("<<deviceType<<")";
+
+    if(m_smtTool->model_deviceType_map[model] == deviceType)
+    {
+        ui->label_model_type_error->setVisible(false);
+    }
+    else
+    {
+        qDebug() << "model_deviceType_map[model]="<< m_smtTool->model_deviceType_map[model];
+        ui->label_model_type_error->setVisible(true);
+        ui->label_model_type_error->setText(QString("型号(%1)和系统类型(%2)不匹配").arg(model).arg(deviceType));
+    }
+
 }
 
 bool Widget::valueCompare(QString value, QString set_value, QString type)
@@ -817,6 +919,7 @@ void Widget::dispHomePage() //init homepage display
             m_tableWidget_home->setColumnCount(HOME_COL_CNT);
         }
 
+        ui->label_model->clear();
         ui->label_model_type_error->setVisible(false);
     }
     ui->stackedWidget->setCurrentWidget(m_tableWidget_home);

@@ -8,6 +8,7 @@
 #include <QTimer>
 
 #include "smttool.h"
+//#define SELF_TEST_ENABLE
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class Widget; }
@@ -68,12 +69,14 @@ public slots:
     void slot_numCheck_stateChanged(int state);
     void slot_autoStop_stateChanged(int state);//no need
     void slot_IMEI_changed(QString text);
+    void slot_combox_matnr_changed(QString text);
     void slot_comPort_timeout();
     //void slot_tryComm_timeout();
     void slot_smt_timeout();
     void slot_readyRead();
     void slot_dispUpdate();
     void slot_dispUpdate_io();
+    void slot_dispUpdate_model();
     void slot_sendData(unsigned char *data, int len);//
 
     void slot_saveLog();
