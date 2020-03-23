@@ -2,6 +2,7 @@
 #define SMTTOOL_H
 
 #include <QObject>
+#include <QStringList>
 #include "frame_define.h"
 #include <map>
 #include <string>
@@ -20,11 +21,6 @@ typedef enum
     RUNING ,
     STOP
 }SMT_state_t;
-
-//typedef enum
-//{
-
-//}compare_type_t;
 
 typedef struct
 {
@@ -58,9 +54,14 @@ public:
     map<string, item_t> home_map;  //home page
     map<string, item_t> home_map_io;//if MODEL TABLE, no use
     map<string, bool>   result_map;//total  test result
+    void loadConfig();
+    void saveConfig();
 
-    map<int,map<string, string>> model_matnr_map;//model->MATNR->jaway config
-    //model_matnr_config_t model_matnr_config[MATNR_NUM];
+    QStringList matnr_strlist;
+    model_matnr_config_t model_matnr_table[MATNR_NUM];
+    map<uint16_t, map<string, string>> model_matnr_map;//model->MATNR->jaway config
+    map<uint16_t, uint8_t> model_deviceType_map;
+    void loadMatnr();
 
 signals:
     void sig_sendBuf(unsigned char *data, int len);

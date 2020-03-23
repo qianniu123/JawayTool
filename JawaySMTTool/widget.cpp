@@ -33,13 +33,10 @@ Widget::Widget(QWidget *parent)
     connect(ui->checkBox_numCheck, &QCheckBox::stateChanged, this, &Widget::slot_numCheck_stateChanged);
     connect(ui->checkBox_autoStop, &QCheckBox::stateChanged, this, &Widget::slot_autoStop_stateChanged);
     ui->checkBox_autoStop->setCheckState(Qt::Checked);
-    ui->checkBox_numCheck->setCheckState(Qt::Unchecked);
+    ui->checkBox_numCheck->setCheckState(Qt::Unchecked); 
 
-    ui->groupBox_numCheck->setLayout(ui->verticalLayout_numCheck);
-    ui->groupBox_numCheck->setVisible(false);
-    //in horizontalLayout_sn
-    ui->label_SN->setVisible(false);
-    ui->lineEdit_SN->setVisible(false);
+    ui->frame->setLayout(ui->verticalLayout_frame);
+    ui->frame->setVisible(false);
 
     connect(ui->lineEdit_IMEI, &QLineEdit::textChanged, this, &Widget::slot_IMEI_changed);
 
@@ -49,7 +46,12 @@ Widget::Widget(QWidget *parent)
     result_font.setPixelSize(30);
     ui->label_model->setFont(result_font);
 
-    //------------------------------------
+    QPalette pe;
+    pe.setColor(QPalette::Text, Qt::red);
+    ui->label_model_type_error->setVisible(false);
+    ui->label_model_type_error->setPalette(pe);
+    ui->label_model_type_error->setFont(result_font);
+    //----------------------------------------------------------------------
     m_smt_timer = new QTimer();
     m_smt_timer->setInterval(1000);//ms
     connect(m_smt_timer, &QTimer::timeout, this, &Widget::slot_smt_timeout);
@@ -111,6 +113,8 @@ void Widget::init()
     m_tableWidget_home   = nullptr;
 
     m_compareTypeList << "int" << "string" << "bool" << "flag" << "io";
+
+    ui->comboBox_matnr->insertItems(0, m_smtTool->matnr_strlist);
     //-----------------------------------------------------------------
     loadConfig();
     dispConfigPage();
@@ -147,7 +151,9 @@ void Widget::slot_test_timeout()
     m_smtTool->frame_map["LOCK"] = "0";
     m_smtTool->frame_map["外电"] = "1";
     m_smtTool->frame_map["电门"] = "0";
-     m_smtTool->frame_map["MODEL"] = "33";
+
+    m_smtTool->frame_map["MODEL"] = "18";
+    m_smtTool->frame_map["DEVICE_TYPE"] = "2";
     //m_smtTool->frame_map["GPIO"] = to_string(0x5a5a);
 
 
@@ -171,7 +177,7 @@ void Widget::slot_test_timeout()
 void Widget::slot_numCheck_stateChanged(int state)
 {   
     //checked=2 , unchecked=0
-    ui->groupBox_numCheck->setVisible((state==2)?true:false);
+    ui->frame->setVisible((state==2)?true:false);
     if(state == 2)//checked
     {
         ui->lineEdit_IMEI->setFocus(); //forcus
@@ -454,7 +460,7 @@ void Widget::slot_dispUpdate()
     }
 
     //-----------------------------------------------------------------
-    //display model MATNR
+    //display model MATNR and check devicetype
     QString model_str = QString::fromStdString(m_smtTool->frame_map["MODEL"]);
     uint16_t model = model_str.toUShort();
     auto second = m_smtTool->model_matnr_map[model];
@@ -467,6 +473,18 @@ void Widget::slot_dispUpdate()
     else
     {
         ui->label_model->setText(QString("MATUR error"));
+    }
+
+    QString deviceType_str = QString::fromStdString(m_smtTool->frame_map["DEVICE_TYPE"]);
+    uint8_t deviceType = (uint8_t)deviceType_str.toUInt();
+    if(m_smtTool->model_deviceType_map[model] == deviceType)
+    {
+        ui->label_model_type_error->setVisible(false);
+    }
+    else
+    {
+        ui->label_model_type_error->setVisible(true);
+        ui->label_model_type_error->setText(QString("型号和设备类型不匹配"));
     }
 
     //check result_map , if all pass, --> auto stop; --> and save log
@@ -621,52 +639,11 @@ bool Widget::valueCompare(QString value, QString set_value, QString type)
 
 void Widget::loadConfig()
 {
-    //config.yaml --> config_map --> tableWidget
-    ifstream f_in("./config.yaml");
-    if(!f_in)
-    {
-        qDebug() << "read config.yaml error";
-        return;
-    }
-
-    YAML::Node config = YAML::Load(f_in);
-    if(!config.IsDefined()) //if(config.IsNull())
-    {
-        qDebug() << "yaml load error";
-        goto LOAD_END;
-    }
-
-    m_smtTool->config_map.clear();
-    for(YAML::const_iterator it=config.begin(); it!=config.end(); it++)
-    {
-        string node_name = it->first.as<string>();
-        string enable;
-        string type;
-        string value;
-        if(config[node_name]["enable"])
-        {
-            enable = config[node_name]["enable"].as<string>();
-        }
-        if(config[node_name]["type"])
-        {
-            type = config[node_name]["type"].as<string>();
-            if(config[node_name]["value"])
-            {
-                value = config[node_name]["value"].as<string>();
-            }
-        }
-
-        //cout << node_name << ":" << enable << "," << type << "," << value << endl;
-        //------------------------------------------------------------------------
-        m_smtTool->config_map[node_name].enable = enable;
-        m_smtTool->config_map[node_name].type   = type;
-        m_smtTool->config_map[node_name].value  = value;
-    }
-
-    LOAD_END:
-    f_in.close();
+    // config.yml --> config_map
+    m_smtTool->loadConfig();
 }
 
+//config_map --> configPage
 void Widget::dispConfigPage()
 {
     //config table widget
@@ -723,18 +700,13 @@ void Widget::dispConfigPage()
     }
 }
 
+//save configPage to config_map, refresh home_map, result_map
 void Widget::saveConfig()
 {
-    //clear home_map --> tableWidget --> config.yaml && home_map
-    ofstream f_out("./config.yaml");
-    if(!f_out)
-    {
-        qDebug() << "open config.yaml error";
-    }
-    YAML::Node config;
-
+    //clear home_map --> tableWidget --> home_map && config_map && result_map
     m_smtTool->home_map.clear();
     m_smtTool->result_map.clear();
+    //m_smtTool->config_map.clear();
 
     int row_cnt = m_tableWidget_config->rowCount();
     for(int i=0; i<row_cnt; i++)
@@ -771,14 +743,13 @@ void Widget::saveConfig()
             }
         }
 
-        //--->config.yaml
-        config[node_name]["enable"] = (enable);
-        config[node_name]["type"] = type;
-        config[node_name]["value"] = value;
+        //--->config_map
+        item_t item = {to_string(enable), type, value};
+        m_smtTool->config_map[node_name] = item;
     }
 
-    f_out << config;
-    f_out.close();
+    //config_map --> config.yml
+    m_smtTool->saveConfig();
 }
 
 void Widget::setGpioList(string gpios)
@@ -819,7 +790,7 @@ void Widget::setGpioList(string gpios)
     #endif
 }
 
-void Widget::dispHomePage()
+void Widget::dispHomePage() //init homepage display
 {
     if(!m_tableWidget_home)
     {
@@ -845,6 +816,8 @@ void Widget::dispHomePage()
         {
             m_tableWidget_home->setColumnCount(HOME_COL_CNT);
         }
+
+        ui->label_model_type_error->setVisible(false);
     }
     ui->stackedWidget->setCurrentWidget(m_tableWidget_home);
     //------------------------------------------------------------------------------------

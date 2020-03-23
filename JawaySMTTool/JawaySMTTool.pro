@@ -16,8 +16,8 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 #need distinguish 32bit or 64bit gcc
-LIBS += -L$$PWD/../lib/32bit -lyaml-cpp  #mingw32
-#LIBS += -L$$PWD/../lib/64bit -lyaml-cpp #mingw64
+#LIBS += -L$$PWD/../lib/32bit -lyaml-cpp  #mingw32
+LIBS += -L$$PWD/../lib/64bit -lyaml-cpp #mingw64
 
 INCLUDEPATH += $$PWD/../yaml-cpp/inc \
                $$PWD/inc

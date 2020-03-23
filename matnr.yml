@@ -1,0 +1,16 @@
+#物料号(MATNR)-----> 嘉为配置(config)-----> 型号(model)
+MATNR:
+    30200-QSM-A510-4GEU: {config: B10_MB2, model: 0x12, deviceType: 2}
+    30200-QSM-A510-NULL: {config: B10_MB8, model: 0x16, deviceType: 8}
+    30200-TGC-A000-2GCHN: {config: B10_2G, model: 0x13, deviceType: 0}
+    30200-TGD-A000-2GCHN: {config: B10_2G, model: 0x1C, deviceType: 0}
+    30200-TBG-A000-NULL: {config: B10_MB7, model: 0x14, deviceType: 7}
+    30200-TBG-A000-4GEU: {config: B10_MB1, model: 0x15, deviceType: 1}
+    30200-QSM-F000-4GEU: {config: B10_MB9, model: 0x1A, deviceType: 9}
+    30200-QSM-F000-NULL: {config: B10_MB10, model: 0x1D, deviceType: 9}
+    30200-QSM-F600-2GCHN: {config: B10_2G, model: 0x1E, deviceType: 0}
+    30200-TAC-A000-2GCHN: {config: B11_MB3, model: 0x19, deviceType: 12}
+    30200-TAC-E300-4GEU: {config: B11_MB2, model: 0x18, deviceType: 11}
+    30200-TAC-E300-NULL: {config: B11_MB4, model: 0x1F, deviceType: 11}
+    30200-TAC-E601-NULL: {config: B11_MB1, model: 0x17, deviceType: 10}
+    30200-QSM-G500-4GEU: {config: B10_MB9, model: 0x1B, deviceType: 9}
