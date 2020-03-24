@@ -66,7 +66,7 @@ Widget::Widget(QWidget *parent)
 
     m_serialPort = new QSerialPort();
     connect(m_serialPort, &QSerialPort::readyRead, this, &Widget::slot_readyRead);
-
+    connect(m_serialPort, &QSerialPort::errorOccurred, this, &Widget::slot_comPort_error);
 
     //----------------------------------------------------------------------
     m_smtTool = new SMTTool();
@@ -102,6 +102,27 @@ void Widget::slot_comPort_timeout()
         }
         ui->comboBox_comPort->clear();
         ui->comboBox_comPort->addItems(portList);
+    }
+}
+
+void Widget::slot_comPort_error(QSerialPort::SerialPortError error)
+{
+    qDebug() << "slot_comPort_error: " << error;
+
+    switch(error)
+    {
+        case QSerialPort::ResourceError:
+        {
+            if(m_serialPort->isOpen())
+            {
+                m_serialPort->close();
+                emit ui->pushButton_open->click();
+            }
+        }
+        break;
+
+        default:
+        break;
     }
 }
 
@@ -279,8 +300,17 @@ void Widget::on_pushButton_open_clicked()
     }
     else if(ui->pushButton_open->text() == QString("关闭串口"))
     {
-        m_serialPort->close();
+        if(m_serialPort->isOpen())
+        {
+            m_serialPort->close();
+        }
         ui->pushButton_open->setText(QString("打开串口"));
+
+        if(ui->pushButton_smt->text() == QString("停止测试"))
+        {
+            emit ui->pushButton_smt->click();
+            //on_pushButton_smt_clicked();
+        }
         ui->pushButton_smt->setEnabled(false);
     }
 }
@@ -393,7 +423,10 @@ void Widget::slot_smt_timeout()
 
 void Widget::slot_sendData(unsigned char *data, int len)
 {
-    m_serialPort->write(reinterpret_cast<char*>(data), len);
+    if(m_serialPort->isOpen())
+    {
+        m_serialPort->write(reinterpret_cast<char*>(data), len);
+    }
 }
 
 void Widget::on_toolButton_config_clicked()

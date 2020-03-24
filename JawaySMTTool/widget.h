@@ -71,6 +71,7 @@ public slots:
     void slot_IMEI_changed(QString text);
     void slot_combox_matnr_changed(QString text);
     void slot_comPort_timeout();
+    void slot_comPort_error(QSerialPort::SerialPortError error);
     //void slot_tryComm_timeout();
     void slot_smt_timeout();
     void slot_readyRead();
