@@ -241,6 +241,19 @@
      </widget>
     </item>
     <item>
+     <widget class="QLabel" name="label_deviceType">
+      <property name="layoutDirection">
+       <enum>Qt::LeftToRight</enum>
+      </property>
+      <property name="text">
+       <string>deviceType</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
+     </widget>
+    </item>
+    <item>
      <widget class="QLabel" name="label_model">
       <property name="minimumSize">
        <size>
@@ -250,6 +263,9 @@
       </property>
       <property name="text">
        <string>model</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
       </property>
      </widget>
     </item>
@@ -266,6 +282,9 @@
       </property>
       <property name="text">
        <string>model_type_error</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
       </property>
      </widget>
     </item>

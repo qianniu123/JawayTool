@@ -25,7 +25,7 @@ Widget::Widget(QWidget *parent)
 {
     ui->setupUi(this);
     this->setLayout(ui->verticalLayout_all);
-    this->setWindowTitle(QString("嘉为SMT测试工具_V2.03"));//JawaySMTTool_V2.0
+    this->setWindowTitle(QString("嘉为SMT测试工具_V2.04"));//JawaySMTTool_V2.0
 
     //--------------------------------------------------------------------------------------------------
     ui->pushButton_smt->setEnabled(false);
@@ -108,8 +108,22 @@ void Widget::slot_comPort_timeout()
 void Widget::slot_comPort_error(QSerialPort::SerialPortError error)
 {
     qDebug() << "slot_comPort_error: " << error;
+    if(error != QSerialPort::NoError)
+    {
+        ui->label_model->setText(QString("com error:%1").arg(error));
 
-    switch(error)
+        if(m_serialPort->isOpen())
+        {
+            m_serialPort->close();
+            emit ui->pushButton_open->click();
+        }
+    }
+    else
+    {
+        ui->label_model->setText(QString("model"));
+    }
+
+    /*switch(error)
     {
         case QSerialPort::ResourceError:
         {
@@ -123,7 +137,8 @@ void Widget::slot_comPort_error(QSerialPort::SerialPortError error)
 
         default:
         break;
-    }
+    }*/
+
 }
 
 void Widget::init()
@@ -178,7 +193,7 @@ void Widget::slot_test_timeout()
     m_smtTool->frame_map["电门"] = "0";
 
     m_smtTool->frame_map["MODEL"] = "21";
-    m_smtTool->frame_map["DEVICE_TYPE"] = "1";
+    m_smtTool->frame_map["DEVICE_TYPE"] = "2";
     //m_smtTool->frame_map["GPIO"] = to_string(0x5a5a);
 
 
@@ -218,6 +233,8 @@ void Widget::slot_numCheck_stateChanged(int state)
         item_t imei_item = m_smtTool->home_map["IMEI"];
         imei_item.value = "";
         m_smtTool->home_map["IMEI"] = imei_item;
+
+        ui->label_model_type_error->setVisible(false);//no need compare in smt test
     }
 
     //-----------------------------------------------------------------------------------------------
@@ -671,11 +688,16 @@ void Widget::slot_dispUpdate_io()
 
 void Widget::slot_dispUpdate_model()
 {
+    //display deviceType
+    QString deviceType_str = QString::fromStdString(m_smtTool->frame_map["DEVICE_TYPE"]);
+    uint8_t deviceType = (uint8_t)deviceType_str.toUInt();
+    QString deviceName = QString::fromStdString(m_smtTool->deviceType_deviceName_map[deviceType]);
+    ui->label_deviceType->setText(QString("系统(设备)类型: %1 (%2)").arg(deviceType_str).arg(deviceName));
+
     //display model MATNR and check devicetype(package test vs smt test)
     QString model_str = QString::fromStdString(m_smtTool->frame_map["MODEL"]);
     uint16_t model = model_str.toUShort();
-    QString deviceType_str = QString::fromStdString(m_smtTool->frame_map["DEVICE_TYPE"]);
-    uint8_t deviceType = (uint8_t)deviceType_str.toUInt();
+
     QString matnr;
     QString jaway_config;
     auto second = m_smtTool->model_matnr_map[model];
@@ -710,7 +732,7 @@ void Widget::slot_dispUpdate_model()
             ui->label_model->setPalette(pe_red);
             ui->label_model->setText(QString("MATNR error"));
         }
-        //-------------
+        //-----------------------------------------------------
         if(m_smtTool->model_deviceType_map[model] == deviceType)
         {
             ui->label_model_type_error->setVisible(false);
@@ -734,6 +756,8 @@ void Widget::slot_dispUpdate_model()
             ui->label_model->setText(QString("no MATNR"));
             //ui->label_model->setPalette(pe_red);
         }
+        //-------------------------------------------
+        ui->label_model_type_error->setVisible(false);
     }
 
     //qDebug() << matnr << ":" << model_str <<"("<< model<<")-->"<< deviceType_str<<"("<<deviceType<<")";
@@ -953,6 +977,12 @@ void Widget::dispHomePage() //init homepage display
 
         ui->label_model->clear();
         ui->label_model_type_error->setVisible(false);
+        if(ui->checkBox_numCheck->isChecked() && ui->lineEdit_IMEI->text().isEmpty())
+        {
+            item_t imei_item = m_smtTool->home_map["IMEI"];
+            imei_item.value = "null";
+            m_smtTool->home_map["IMEI"] = imei_item;
+        }
     }
     ui->stackedWidget->setCurrentWidget(m_tableWidget_home);
     //------------------------------------------------------------------------------------

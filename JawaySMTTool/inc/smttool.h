@@ -61,6 +61,7 @@ public:
     model_matnr_config_t model_matnr_table[MATNR_NUM];
     map<uint16_t, map<string, string>> model_matnr_map;//model->MATNR->jaway config
     map<uint16_t, uint8_t> model_deviceType_map;
+    map<uint16_t, string> deviceType_deviceName_map;
     void loadMatnr();
 
 signals:

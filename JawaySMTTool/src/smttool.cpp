@@ -104,7 +104,14 @@ void SMTTool::loadMatnr()
             {
                 uint16_t deviceType = node[matnr]["deviceType"].as<uint16_t>(); //cout << "deviceType:" << deviceType << endl;
                 model_deviceType_map[model] = (uint8_t)deviceType;
+
+                if(node[matnr]["deviceName"])
+                {
+                    string deviceName = node[matnr]["deviceName"].as<string>();
+                    deviceType_deviceName_map[deviceType] = deviceName;
+                }
             }
+
         }
     }
 

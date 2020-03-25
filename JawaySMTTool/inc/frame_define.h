@@ -83,6 +83,7 @@ typedef struct
     string   matnr;
     string   config;
     uint8_t  device_type;
+    string   device_name;
 }model_matnr_config_t;
 
 
